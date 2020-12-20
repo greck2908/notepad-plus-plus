@@ -23,13 +23,15 @@
 #include "CharacterSet.h"
 #include "LexerModule.h"
 
+#ifdef SCI_NAMESPACE
 using namespace Scintilla;
+#endif
 
 // Internal state, highlighted as number
 #define SCE_B_FILENUMBER SCE_B_DEFAULT+100
 
 
-static bool IsVBComment(Accessor &styler, Sci_Position pos, Sci_Position len) {
+static bool IsVBComment(Accessor &styler, int pos, int len) {
 	return len > 0 && styler[pos] == '\'';
 }
 
@@ -53,10 +55,10 @@ static inline bool IsANumberChar(int ch) {
 	// but probably enough in most cases.
 	return (ch < 0x80) &&
 	        (isdigit(ch) || toupper(ch) == 'E' ||
-             ch == '.' || ch == '-' || ch == '+' || ch == '_');
+             ch == '.' || ch == '-' || ch == '+');
 }
 
-static void ColouriseVBDoc(Sci_PositionU startPos, Sci_Position length, int initStyle,
+static void ColouriseVBDoc(unsigned int startPos, int length, int initStyle,
                            WordList *keywordlists[], Accessor &styler, bool vbScriptSyntax) {
 
 	WordList &keywords = *keywordlists[0];
@@ -199,10 +201,6 @@ static void ColouriseVBDoc(Sci_PositionU startPos, Sci_Position length, int init
 				// Octal number
 				sc.SetState(SCE_B_NUMBER);
 				sc.Forward();
-			} else if (sc.ch == '&' && tolower(sc.chNext) == 'b') {
-				// Binary number
-				sc.SetState(SCE_B_NUMBER);
-				sc.Forward();
 			} else if (IsADigit(sc.ch) || (sc.ch == '.' && IsADigit(sc.chNext))) {
 				sc.SetState(SCE_B_NUMBER);
 			} else if (IsAWordStart(sc.ch) || (sc.ch == '[')) {
@@ -256,12 +254,12 @@ static void ColouriseVBDoc(Sci_PositionU startPos, Sci_Position length, int init
 	sc.Complete();
 }
 
-static void FoldVBDoc(Sci_PositionU startPos, Sci_Position length, int,
+static void FoldVBDoc(unsigned int startPos, int length, int,
 						   WordList *[], Accessor &styler) {
-	Sci_Position endPos = startPos + length;
+	int endPos = startPos + length;
 
 	// Backtrack to previous line in case need to fix its fold status
-	Sci_Position lineCurrent = styler.GetLine(startPos);
+	int lineCurrent = styler.GetLine(startPos);
 	if (startPos > 0) {
 		if (lineCurrent > 0) {
 			lineCurrent--;
@@ -271,7 +269,7 @@ static void FoldVBDoc(Sci_PositionU startPos, Sci_Position length, int,
 	int spaceFlags = 0;
 	int indentCurrent = styler.IndentAmount(lineCurrent, &spaceFlags, IsVBComment);
 	char chNext = styler[startPos];
-	for (Sci_Position i = startPos; i < endPos; i++) {
+	for (int i = startPos; i < endPos; i++) {
 		char ch = chNext;
 		chNext = styler.SafeGetCharAt(i + 1);
 
@@ -298,12 +296,12 @@ static void FoldVBDoc(Sci_PositionU startPos, Sci_Position length, int,
 	}
 }
 
-static void ColouriseVBNetDoc(Sci_PositionU startPos, Sci_Position length, int initStyle,
+static void ColouriseVBNetDoc(unsigned int startPos, int length, int initStyle,
                            WordList *keywordlists[], Accessor &styler) {
 	ColouriseVBDoc(startPos, length, initStyle, keywordlists, styler, false);
 }
 
-static void ColouriseVBScriptDoc(Sci_PositionU startPos, Sci_Position length, int initStyle,
+static void ColouriseVBScriptDoc(unsigned int startPos, int length, int initStyle,
                            WordList *keywordlists[], Accessor &styler) {
 	ColouriseVBDoc(startPos, length, initStyle, keywordlists, styler, true);
 }

@@ -59,17 +59,13 @@ inline bool match(TCHAR c1, TCHAR c2) {
 
 //test string case insensitive ala Scintilla
 //0 if equal, <0 of before, >0 if after (name1 that is)
-int testNameNoCase(const TCHAR * name1, const TCHAR * name2, int len = -1)
-{
-	if (len == -1)
-	{
+int testNameNoCase(const TCHAR * name1, const TCHAR * name2, int len = -1) {
+	if (len == -1) {
 		len = 1024;	//magic value, but it probably fails way before it reaches this
 	}
 	int i = 0;
-	while (match(name1[i], name2[i]))
-	{
-		if (name1[i] == 0 || i == len)
-		{
+	while(match(name1[i], name2[i])) {
+		if (name1[i] == 0 || i == len) {
 			return 0;	//equal	
 		}
 		++i;	
@@ -81,8 +77,7 @@ int testNameNoCase(const TCHAR * name1, const TCHAR * name2, int len = -1)
 	return ( (name1[i]-subs1) - (name2[i]-subs2) );
 }
 
-void FunctionCallTip::setLanguageXML(TiXmlElement * pXmlKeyword)
-{
+void FunctionCallTip::setLanguageXML(TiXmlElement * pXmlKeyword) {
 	if (isVisible())
 		close();
 	_pXmlKeyword = pXmlKeyword;
@@ -91,7 +86,8 @@ void FunctionCallTip::setLanguageXML(TiXmlElement * pXmlKeyword)
 	reset();
 
 	// Also clear _funcName so that next getCursorFunction will call loadFunction to parse XML structure
-	delete [] _funcName;
+	if (_funcName)
+		delete [] _funcName;
 	_funcName = 0;
 }
 
@@ -112,16 +108,14 @@ bool FunctionCallTip::updateCalltip(int ch, bool needShown)
 	return true;
 }
 
-void FunctionCallTip::showNextOverload()
-{
+void FunctionCallTip::showNextOverload() {
 	if (!isVisible())
 		return;
 	_currentOverload = (_currentOverload+1) % _currentNbOverloads;
 	showCalltip();
 }
 
-void FunctionCallTip::showPrevOverload()
-{
+void FunctionCallTip::showPrevOverload() {
 	if (!isVisible())
 		return;
 	_currentOverload = _currentOverload > 0 ? (_currentOverload-1) : (_currentNbOverloads-1);
@@ -259,7 +253,7 @@ bool FunctionCallTip::getCursorFunction()
 
 	if (curValue.lastFunctionIdentifier == -1)
 	{	//not in direct function. Start popping the stack untill we empty it, or a func IS found
-		while (curValue.lastFunctionIdentifier == -1 && valueVec.size() > 0)
+		while(curValue.lastFunctionIdentifier == -1 && valueVec.size() > 0)
 		{
 			curValue = valueVec.back();
 			valueVec.pop_back();
@@ -274,17 +268,19 @@ bool FunctionCallTip::getCursorFunction()
 		bool same = false;
 		if (_funcName)
 		{
-			if (_ignoreCase)
+			if(_ignoreCase)
 				same = testNameNoCase(_funcName, funcToken.token, lstrlen(_funcName)) == 0;
 			else
 				same = generic_strncmp(_funcName, funcToken.token, lstrlen(_funcName)) == 0;
 		}
 		if (!same)
 		{	//check if we need to reload data
-			delete [] _funcName;
-
+			if (_funcName)
+			{
+				delete [] _funcName;
+			}
 			_funcName = new TCHAR[funcToken.length+1];
-			wcscpy_s(_funcName, funcToken.length+1, funcToken.token);
+			lstrcpy(_funcName, funcToken.token);
 			res = loadFunction();
 		}
 		else
@@ -345,8 +341,7 @@ bool FunctionCallTip::loadFunction()
 
 	TiXmlElement *overloadNode = _curFunction->FirstChildElement(TEXT("Overload"));
 	TiXmlElement *paramNode = NULL;
-	for (; overloadNode ; overloadNode = overloadNode->NextSiblingElement(TEXT("Overload")) )
-	{
+	for (; overloadNode ; overloadNode = overloadNode->NextSiblingElement(TEXT("Overload")) ) {
 		const TCHAR * retVal = overloadNode->Attribute(TEXT("retVal"));
 		if (!retVal)
 			continue;	//malformed node
@@ -359,8 +354,7 @@ bool FunctionCallTip::loadFunction()
 			_descriptions.push_back(TEXT(""));	//"no description available"
 
 		paramNode = overloadNode->FirstChildElement(TEXT("Param"));
-		for (; paramNode ; paramNode = paramNode->NextSiblingElement(TEXT("Param")) )
-		{
+		for (; paramNode ; paramNode = paramNode->NextSiblingElement(TEXT("Param")) ) {
 			const TCHAR * param = paramNode->Attribute(TEXT("name"));
 			if (!param)
 				continue;	//malformed node
@@ -394,7 +388,7 @@ void FunctionCallTip::showCalltip()
 	if ((size_t)_currentParam >= psize)
 	{
 		size_t osize = _overloads.size();
-		for (size_t i = 0; i < osize; ++i)
+		for(size_t i = 0; i < osize; ++i)
 		{
 			psize = _overloads.at(i).size()+1;
 			if ((size_t)_currentParam < psize)
@@ -448,8 +442,7 @@ void FunctionCallTip::showCalltip()
 	}
 }
 
-void FunctionCallTip::reset()
-{
+void FunctionCallTip::reset() {
 	_currentOverload = 0;
 	_currentParam = 0;
 	//_curPos = 0;
@@ -460,10 +453,10 @@ void FunctionCallTip::reset()
 	_descriptions.clear();
 }
 
-void FunctionCallTip::cleanup()
-{
+void FunctionCallTip::cleanup() {
 	reset();
-	delete [] _funcName;
+	if (_funcName)
+		delete [] _funcName;
 	_funcName = 0;
 	_pEditView = NULL;
 }

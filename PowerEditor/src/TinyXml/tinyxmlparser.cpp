@@ -24,7 +24,6 @@ distribution.
 
 
 #include <sstream>
-#include <tchar.h>
 #include "tinyxml.h"
 
 //#define DEBUG_PARSER
@@ -157,7 +156,7 @@ const TCHAR* TiXmlBase::SkipWhiteSpace( const TCHAR* p )
 	}
 	while ( p && *p )
 	{
-		if ( _istspace( *p ) || *p == '\n' || *p =='\r' )		// Still using old rules for white space.
+		if ( isspace( *p ) || *p == '\n' || *p =='\r' )		// Still using old rules for white space.
 			++p;
 		else
 			break;
@@ -169,7 +168,7 @@ const TCHAR* TiXmlBase::SkipWhiteSpace( const TCHAR* p )
 #ifdef TIXML_USE_STL
 /*static*/ bool TiXmlBase::StreamWhiteSpace( TIXML_ISTREAM * in, TIXML_STRING * tag )
 {
-	for ( ;; )
+	for( ;; )
 	{
 		if ( !in->good() ) return false;
 
@@ -205,10 +204,10 @@ const TCHAR* TiXmlBase::ReadName( const TCHAR* p, TIXML_STRING * name )
 	// hyphens, or colons. (Colons are valid ony for namespaces,
 	// but tinyxml can't tell namespaces from names.)
 	if (    p && *p 
-		 && ( _istalpha( *p ) || *p == '_' ) )
+		 && ( isalpha( (UCHAR) *p ) || *p == '_' ) )
 	{
 		while(		p && *p
-				&&	(		_istalnum( *p ) 
+				&&	(		isalnum( (UCHAR ) *p ) 
 						 || *p == '_'
 						 || *p == '-'
 						 || *p == '.'
@@ -271,7 +270,7 @@ bool TiXmlBase::StringEqual( const TCHAR* p,
 		return false;
 	}
 
-    if ( _totlower( *p ) == _totlower( *tag ) )
+    if ( tolower( *p ) == tolower( *tag ) )
 	{
 		const TCHAR* q = p;
 
@@ -290,7 +289,7 @@ bool TiXmlBase::StringEqual( const TCHAR* p,
 		}
 		else
 		{
-			while ( *q && *tag && _totlower( *q ) == _totlower( *tag ) )
+			while ( *q && *tag && tolower( *q ) == tolower( *tag ) )
 			{
 				++q;
 				++tag;
@@ -339,7 +338,7 @@ const TCHAR* TiXmlBase::ReadText(	const TCHAR* p,
 				whitespace = true;
 				++p;
 			}
-			else if ( _istspace( *p ) )
+			else if ( isspace( *p ) )
 			{
 				whitespace = true;
 				++p;
@@ -504,7 +503,7 @@ TiXmlNode* TiXmlNode::Identify( const TCHAR* p )
 	TiXmlNode* returnNode = 0;
 
 	p = SkipWhiteSpace( p );
-	if ( !p || !*p || *p != '<' )
+	if( !p || !*p || *p != '<' )
 	{
 		return 0;
 	}
@@ -534,7 +533,7 @@ TiXmlNode* TiXmlNode::Identify( const TCHAR* p )
 		#endif
 		returnNode = new TiXmlDeclaration();
 	}
-	else if (    _istalpha( *(p+1) )
+	else if (    isalpha( *(p+1) )
 			  || *(p+1) == '_' )
 	{
 		#ifdef DEBUG_PARSER
@@ -627,7 +626,7 @@ void TiXmlElement::StreamIn (TIXML_ISTREAM * in, TIXML_STRING * tag)
 			bool closingTag = false;
 			bool firstCharFound = false;
 
-			for ( ;; )
+			for( ;; )
 			{
 				if ( !in->good() )
 					return;
@@ -1014,7 +1013,7 @@ const TCHAR* TiXmlAttribute::Parse( const TCHAR* p, TiXmlParsingData* data )
 		// its best, even without them.
 		value = TEXT("");
 		while (    p && *p										// existence
-				&& !_istspace( *p ) && *p != '\n' && *p != '\r'	// whitespace
+				&& !isspace( *p ) && *p != '\n' && *p != '\r'	// whitespace
 				&& *p != '/' && *p != '>' )						// tag end
 		{
 			value += *p;
@@ -1127,7 +1126,7 @@ const TCHAR* TiXmlDeclaration::Parse( const TCHAR* p, TiXmlParsingData* data )
 		else
 		{
 			// Read over whatever it is.
-			while( p && *p && *p != '>' && !_istspace( *p ) )
+			while( p && *p && *p != '>' && !isspace( *p ) )
 				++p;
 		}
 	}
@@ -1137,7 +1136,7 @@ const TCHAR* TiXmlDeclaration::Parse( const TCHAR* p, TiXmlParsingData* data )
 bool TiXmlText::Blank() const
 {
 	for (size_t i = 0, len = value.length(); i < len; i++)
-		if ( !_istspace( value[i] ) )
+		if ( !isspace( value[i] ) )
 			return false;
 	return true;
 }

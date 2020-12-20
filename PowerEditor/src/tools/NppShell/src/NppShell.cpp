@@ -467,8 +467,7 @@ CShellExt::CShellExt() :
 	m_nameLength(0),
 	m_nameMaxLength(maxText),
 	m_isDynamic(false),
-	m_winVer(0),
-	m_hBitmap(NULL)
+	m_winVer(0)
 {
 	TCHAR szKeyTemp [MAX_PATH + GUID_STRING_SIZE];
 	ZeroMemory(&m_stgMedium, sizeof(m_stgMedium));
@@ -533,9 +532,6 @@ CShellExt::~CShellExt() {
 	if (m_winVer >= WINVER_VISTA) {
 		DeinitTheming();
 	}
-
-	if (m_hBitmap != NULL && m_hBitmap != HBMMENU_CALLBACK)
-		DeleteBitmap(m_hBitmap);
 
 	if (m_pDataObj)
 		m_pDataObj->Release();
@@ -652,7 +648,6 @@ STDMETHODIMP CShellExt::QueryContextMenu(HMENU hMenu, UINT indexMenu, UINT idCmd
 			}
 
 		}
-		m_hBitmap = icon;
 	}
 
 	m_hMenu = hMenu;

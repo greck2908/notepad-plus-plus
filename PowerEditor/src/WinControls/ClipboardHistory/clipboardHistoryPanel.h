@@ -1,5 +1,5 @@
 // This file is part of Notepad++ project
-// Copyright (C)2020 Don HO <don.h@free.fr>
+// Copyright (C)2003 Don HO <don.h@free.fr>
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -26,9 +26,14 @@
 // Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 
 
-#pragma once
+#ifndef CLIPBOARDHISTORYPANEL_H
+#define CLIPBOARDHISTORYPANEL_H
 
+//#include <windows.h>
+#ifndef DOCKINGDLGINTERFACE_H
 #include "DockingDlgInterface.h"
+#endif //DOCKINGDLGINTERFACE_H
+
 #include "clipboardHistoryPanel_rc.h"
 #include <vector>
 
@@ -44,7 +49,8 @@ public:
 	explicit ByteArray(ClipboardData cd);
 	
 	~ByteArray() {
-		delete [] _pBytes;
+		if (_pBytes)
+			delete [] _pBytes;
 		_pBytes = NULL;
 		_length = 0;
 	};
@@ -68,11 +74,17 @@ public:
 		DockingDlgInterface::init(hInst, hPere);
 		_ppEditView = ppEditView;
 	};
+/*
+    virtual void display(bool toShow = true) const {
+        DockingDlgInterface::display(toShow);
+    };
+*/
 
     void setParent(HWND parent2set){
         _hParent = parent2set;
     };
 
+	//void switchEncoding();
 	ClipboardData getClipboadData();
 	void addToClipboadHistory(ClipboardData cbd);
 	int getClipboardDataIndex(ClipboardData cbd);
@@ -97,4 +109,4 @@ private:
 	int _lbFgColor;
 
 };
-
+#endif // CLIPBOARDHISTORYPANEL_H

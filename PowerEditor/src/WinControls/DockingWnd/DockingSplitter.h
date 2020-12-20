@@ -26,11 +26,18 @@
 // Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 
 
-#pragma once
+#ifndef DOCKINGSPLITTER_H
+#define DOCKINGSPLITTER_H
 
 #include "Window.h"
+
+#ifndef DOCKING_H
 #include "Docking.h"
+#endif //DOCKING_H
+
+#ifndef DOCKING_RESOURCE_H
 #include "dockingResource.h"
+#endif //DOCKING_RESOURCE_H
 
 #define	DMS_VERTICAL		0x00000001
 #define	DMS_HORIZONTAL		0x00000002
@@ -38,8 +45,8 @@
 class DockingSplitter : public Window
 {
 public :
-	DockingSplitter() = default;
-	~DockingSplitter() = default;
+	DockingSplitter() : _isLeftButtonDown(FALSE), _hMessage(NULL) {};
+	~DockingSplitter(){};
 
 	virtual void destroy() {};
 
@@ -52,13 +59,14 @@ protected:
 	LRESULT runProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam);
 
 private:
-	HWND _hMessage = nullptr;
+	HWND				_hMessage;
 
-	BOOL _isLeftButtonDown = FALSE;
-	POINT _ptOldPos = {0, 0};
-	UINT _flags = 0;
+	BOOL				_isLeftButtonDown;
+	POINT				_ptOldPos;
+	UINT				_flags;
 
-	static BOOL _isVertReg;
-	static BOOL _isHoriReg;
+	static BOOL			_isVertReg;
+	static BOOL			_isHoriReg;
 };
 
+#endif // DOCKINGSPLITTER_H

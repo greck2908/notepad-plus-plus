@@ -6,15 +6,14 @@
 // Copyright 2015 by Neil Hodgson <neilh@scintilla.org>
 // The License.txt file describes the conditions under which this software may be distributed.
 
-#include <string>
-#include <string_view>
-
 #include <windows.h>
 
 #include "UniConversion.h"
 #include "HanjaDic.h"
 
+#ifdef SCI_NAMESPACE
 namespace Scintilla {
+#endif
 
 namespace HanjaDict {
 
@@ -65,10 +64,10 @@ private:
 public:
 	IHanjaDic *HJinterface;
 
-	HanjaDic() : HJinterface(nullptr) {
+	HanjaDic() : HJinterface(NULL) {
 		hr = CLSIDFromProgID(OLESTR("mshjdic.hanjadic"), &CLSID_HanjaDic);
 		if (SUCCEEDED(hr)) {
-			hr = CoCreateInstance(CLSID_HanjaDic, nullptr,
+			hr = CoCreateInstance(CLSID_HanjaDic, NULL,
 					CLSCTX_INPROC_SERVER, IID_IHanjaDic,
 					(LPVOID *)& HJinterface);
 			if (SUCCEEDED(hr)) {
@@ -111,7 +110,7 @@ int GetHangulOfHanja(wchar_t *inout) {
 			if (dict.IsHanja(static_cast<int>(inout[i]))) { // Pass hanja only!
 				conv[0] = inout[i];
 				BSTR bstrHanja = SysAllocString(conv);
-				const HRESULT hr = dict.HJinterface->HanjaToHangul(bstrHanja, &bstrHangul);
+				HRESULT hr = dict.HJinterface->HanjaToHangul(bstrHanja, &bstrHangul);
 				if (SUCCEEDED(hr)) {
 					inout[i] = static_cast<wchar_t>(bstrHangul[0]);
 					changed += 1;
@@ -125,4 +124,6 @@ int GetHangulOfHanja(wchar_t *inout) {
 }
 
 }
+#ifdef SCI_NAMESPACE
 }
+#endif

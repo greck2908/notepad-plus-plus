@@ -1,5 +1,5 @@
 // This file is part of Notepad++ project
-// Copyright (C)2020 Don HO <don.h@free.fr>
+// Copyright (C)2003 Don HO <don.h@free.fr>
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -65,12 +65,7 @@ enum BufferStatusInfo
 //const int userLangNameMax = 16;
 const TCHAR UNTITLED_STR[] = TEXT("new ");
 
-enum SavingStatus
-{
-	SaveOK             = 0,
-	SaveOpenFailed     = 1,
-	SaveWrittingFailed = 2
-};
+
 
 //File manager class maintains all buffers
 class FileManager final
@@ -79,10 +74,9 @@ public:
 	void init(Notepad_plus* pNotepadPlus, ScintillaEditView* pscratchTilla);
 
 	//void activateBuffer(int index);
-	void checkFilesystemChanges(bool bCheckOnlyCurrentBuffer);
+	void checkFilesystemChanges();
 
-	size_t getNbBuffers() const { return _nbBufs; };
-	size_t getNbDirtyBuffers() const;
+	size_t getNbBuffers() { return _nbBufs; };
 	int getBufferIndexByID(BufferID id);
 	Buffer * getBufferByIndex(size_t index);
 	Buffer * getBufferByID(BufferID id) {return static_cast<Buffer*>(id);}
@@ -93,7 +87,7 @@ public:
 
 	void addBufferReference(BufferID id, ScintillaEditView * identifer);	//called by Scintilla etc indirectly
 
-	BufferID loadFile(const TCHAR * filename, Document doc = NULL, int encoding = -1, const TCHAR *backupFileName = NULL, FILETIME fileNameTimestamp = {});	//ID == BUFFER_INVALID on failure. If Doc == NULL, a new file is created, otherwise data is loaded in given document
+	BufferID loadFile(const TCHAR * filename, Document doc = NULL, int encoding = -1, const TCHAR *backupFileName = NULL, time_t fileNameTimestamp = 0);	//ID == BUFFER_INVALID on failure. If Doc == NULL, a new file is created, otherwise data is loaded in given document
 	BufferID newEmptyDocument();
 	//create Buffer from existing Scintilla, used from new Scintillas. If dontIncrease = true, then the new document number isnt increased afterwards.
 	//usefull for temporary but neccesary docs
@@ -103,49 +97,31 @@ public:
 	BufferID getBufferFromName(const TCHAR * name);
 	BufferID getBufferFromDocument(Document doc);
 
-	void setLoadedBufferEncodingAndEol(Buffer* buf, const Utf8_16_Read& UnicodeConvertor, int encoding, EolType bkformat);
 	bool reloadBuffer(BufferID id);
 	bool reloadBufferDeferred(BufferID id);
-	SavingStatus saveBuffer(BufferID id, const TCHAR* filename, bool isCopy = false);
+	bool saveBuffer(BufferID id, const TCHAR* filename, bool isCopy = false, generic_string * error_msg = NULL);
 	bool backupCurrentBuffer();
-	bool deleteBufferBackup(BufferID id);
+	bool deleteCurrentBufferBackup();
 	bool deleteFile(BufferID id);
 	bool moveFile(BufferID id, const TCHAR * newFilename);
 	bool createEmptyFile(const TCHAR * path);
-	static FileManager& getInstance() {
-		static FileManager instance;
-		return instance;
-	};
+	static FileManager * getInstance() {return _pSelf;};
+	void destroyInstance() { delete _pSelf; };
 	int getFileNameFromBuffer(BufferID id, TCHAR * fn2copy);
 	int docLength(Buffer * buffer) const;
 	size_t nextUntitledNewNumber() const;
 
 
 private:
-	struct LoadedFileFormat {
-		LoadedFileFormat() = default;
-		LangType _language = L_TEXT;
-		int _encoding = 0;
-		EolType _eolFormat = EolType::osdefault;
-	};
-
-	FileManager() = default;
 	~FileManager();
-
-	// No copy ctor and assignment
-	FileManager(const FileManager&) = delete;
-	FileManager& operator=(const FileManager&) = delete;
-
-	// No move ctor and assignment
-	FileManager(FileManager&&) = delete;
-	FileManager& operator=(FileManager&&) = delete;
-
 	int detectCodepage(char* buf, size_t len);
-	bool loadFileData(Document doc, const TCHAR* filename, char* buffer, Utf8_16_Read* UnicodeConvertor, LoadedFileFormat& fileFormat);
+	bool loadFileData(Document doc, const TCHAR* filename, char* buffer, Utf8_16_Read* UnicodeConvertor, LangType & language, int & encoding, EolType & eolFormat);
 	LangType detectLanguageFromTextBegining(const unsigned char *data, size_t dataLen);
 
 
 private:
+	static FileManager *_pSelf;
+
 	Notepad_plus* _pNotepadPlus = nullptr;
 	ScintillaEditView* _pscratchTilla = nullptr;
 	Document _scratchDocDefault;
@@ -333,7 +309,7 @@ public:
 		return _pManager->docLength(_id);
 	}
 
-	int64_t getFileLength() const; // return file length. -1 if file is not existing.
+	int getFileLength() const; // return file length. -1 if file is not existing.
 
 	enum fileTimeType { ft_created, ft_modified, ft_accessed };
 	generic_string getFileTime(fileTimeType ftt) const;
@@ -343,8 +319,8 @@ public:
 	bool isModified() const { return _isModified; }
 	void setModifiedStatus(bool isModified) { _isModified = isModified; }
 	generic_string getBackupFileName() const { return _backupFileName; }
-	void setBackupFileName(const generic_string& fileName) { _backupFileName = fileName; }
-	FILETIME getLastModifiedTimestamp() const { return _timeStamp; }
+	void setBackupFileName(generic_string fileName) { _backupFileName = fileName; }
+	time_t getLastModifiedTimestamp() const { return _timeStamp; }
 
 	bool isLoadedDirty() const
 	{
@@ -417,7 +393,7 @@ private:
 
 	//Environment properties
 	DocFileStatus _currentStatus;
-	FILETIME _timeStamp = {}; // 0 if it's a new doc
+	time_t _timeStamp = 0; // 0 if it's a new doc
 
 	bool _isFileReadOnly = false;
 	generic_string _fullPathName;

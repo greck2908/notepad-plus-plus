@@ -55,8 +55,7 @@ float CharDistributionAnalysis::GetConfidence(void)
   if (mTotalChars <= 0 || mFreqChars <= mDataThreshold)
     return SURE_NO;
 
-  if (mTotalChars != mFreqChars)
-  {
+  if (mTotalChars != mFreqChars) {
     float r = mFreqChars / ((mTotalChars - mFreqChars) * mTypicalDistributionRatio);
 
     if (r < SURE_YES)

@@ -1,5 +1,5 @@
 // This file is part of Notepad++ project
-// Copyright (C)2020 Don HO <don.h@free.fr>
+// Copyright (C)2003 Don HO <don.h@free.fr>
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -26,7 +26,8 @@
 // Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 
 
-#pragma once
+#ifndef VERTICALFILESWITCHERLISTVIEW_H
+#define VERTICALFILESWITCHERLISTVIEW_H
 
 #include "Window.h"
 #include "TaskListDlg.h"
@@ -34,24 +35,21 @@
 class Buffer;
 typedef Buffer * BufferID;	//each buffer has unique ID by which it can be retrieved
 
-#define SORT_DIRECTION_NONE     -1
 #define SORT_DIRECTION_UP     0
 #define SORT_DIRECTION_DOWN   1
 
 struct SwitcherFileInfo {
 	BufferID _bufID;
 	int _iView;
-
-	SwitcherFileInfo() = delete;
 	SwitcherFileInfo(BufferID buf, int view) : _bufID(buf), _iView(view){};
 };
 
 class VerticalFileSwitcherListView : public Window
 {
 public:
-	VerticalFileSwitcherListView() = default;
-	virtual ~VerticalFileSwitcherListView() = default;
+	VerticalFileSwitcherListView() : Window() {};
 
+	virtual ~VerticalFileSwitcherListView() {};
 	virtual void init(HINSTANCE hInst, HWND parent, HIMAGELIST hImaLst);
 	virtual void destroy();
 	void initList();
@@ -89,8 +87,8 @@ public:
     };
 
 protected:
-	HIMAGELIST _hImaLst = nullptr;
-	WNDPROC _defaultProc = nullptr;
+	HIMAGELIST _hImaLst;
+	WNDPROC _defaultProc;
 	LRESULT runProc(HWND hwnd, UINT Message, WPARAM wParam, LPARAM lParam);
 
 	static LRESULT CALLBACK staticProc(HWND hwnd, UINT Message, WPARAM wParam, LPARAM lParam) {
@@ -102,3 +100,6 @@ protected:
 	void remove(int index);
 	void removeAll();
 };
+
+
+#endif // VERTICALFILESWITCHERLISTVIEW_H

@@ -26,19 +26,27 @@
 // Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 
 
-#pragma once
+#ifndef GRIPPER_H
+#define GRIPPER_H
 
 #include <windows.h>
 #include <commctrl.h>
 #include "Common.h"
+
+#ifndef DOCKING_H
 #include "Docking.h"
+#endif //DOCKING_H
+
+#ifndef DOCKING_RESOURCE_H
 #include "dockingResource.h"
+#endif //DOCKING_RESOURCE_H
 
 class DockingCont;
 class DockingManager;
 
 // For the following #define see the comments at drawRectangle() definition. (jg)
 #define USE_LOCKWINDOWUPDATE
+//#undef USE_LOCKWINDOWUPDATE
 
 
 // Used by getRectAndStyle() to draw the drag rectangle
@@ -155,3 +163,4 @@ private:
 	static BOOL _isRegistered;
 };
 
+#endif // GRIPPER_H

@@ -1,5 +1,5 @@
 // This file is part of Notepad++ project
-// Copyright (C)2020 Don HO <don.h@free.fr>
+// Copyright (C)2003 Don HO <don.h@free.fr>
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -45,7 +45,7 @@ struct PluginCommand
 
 struct PluginInfo
 {
-	PluginInfo() = default;
+	PluginInfo() {}
 	~PluginInfo()
 	{
 		if (_pluginMenu)
@@ -55,17 +55,17 @@ struct PluginInfo
 			::FreeLibrary(_hLib);
 	}
 
-	HINSTANCE _hLib = nullptr;
-	HMENU _pluginMenu = nullptr;
+	HINSTANCE _hLib = NULL;
+	HMENU _pluginMenu = NULL;
 
-	PFUNCSETINFO _pFuncSetInfo = nullptr;
-	PFUNCGETNAME _pFuncGetName = nullptr;
-	PBENOTIFIED	_pBeNotified = nullptr;
-	PFUNCGETFUNCSARRAY _pFuncGetFuncsArray = nullptr;
-	PMESSAGEPROC _pMessageProc = nullptr;
-	PFUNCISUNICODE _pFuncIsUnicode = nullptr;
+	PFUNCSETINFO _pFuncSetInfo = NULL;
+	PFUNCGETNAME _pFuncGetName = NULL;
+	PBENOTIFIED	_pBeNotified = NULL;
+	PFUNCGETFUNCSARRAY _pFuncGetFuncsArray = NULL;
+	PMESSAGEPROC _pMessageProc = NULL;
+	PFUNCISUNICODE _pFuncIsUnicode = NULL;
 
-	FuncItem *_funcItems = nullptr;
+	FuncItem *_funcItems = NULL;
 	int _nbFuncItem = 0;
 	generic_string _moduleName;
 	generic_string _funcName;
@@ -99,8 +99,9 @@ public:
 		_nppData = nppData;
 	}
 
-    int loadPlugin(const TCHAR *pluginFilePath);
-	bool loadPluginsV2(const TCHAR *dir = NULL);
+    int loadPlugin(const TCHAR *pluginFilePath, std::vector<generic_string> & dll2Remove);
+	bool loadPlugins(const TCHAR *dir = NULL);
+	bool loadPluginsV2(const TCHAR *dir);
 
     bool unloadPlugin(int index, HWND nppHandle);
 
@@ -108,12 +109,10 @@ public:
 	void runPluginCommand(const TCHAR *pluginName, int commandID);
 
     void addInMenuFromPMIndex(int i);
-	HMENU setMenu(HMENU hMenu, const TCHAR *menuName, bool enablePluginAdmin = false);
+	HMENU setMenu(HMENU hMenu, const TCHAR *menuName);
 	bool getShortcutByCmdID(int cmdID, ShortcutKey *sk);
-	bool removeShortcutByCmdID(int cmdID);
 
-	void notify(size_t indexPluginInfo, const SCNotification *notification); // to a plugin
-	void notify(const SCNotification *notification); // broadcast
+	void notify(const SCNotification *notification);
 	void relayNppMessages(UINT Message, WPARAM wParam, LPARAM lParam);
 	bool relayPluginMessages(UINT Message, WPARAM wParam, LPARAM lParam);
 
@@ -146,16 +145,6 @@ private:
 		msg += TEXT(" just crashed in\r");
 		msg += funcSignature;
 		::MessageBox(NULL, msg.c_str(), TEXT("Plugin Crash"), MB_OK|MB_ICONSTOP);
-	}
-
-	void pluginExceptionAlert(const TCHAR *pluginName, const std::exception& e)
-	{
-		generic_string msg = TEXT("An exception occurred due to plugin: ");
-		msg += pluginName;
-		msg += TEXT("\r\n\r\nException reason: ");
-		msg += s2ws(e.what());
-
-		::MessageBox(NULL, msg.c_str(), TEXT("Plugin Exception"), MB_OK);
 	}
 
 	bool isInLoadedDlls(const TCHAR *fn) const

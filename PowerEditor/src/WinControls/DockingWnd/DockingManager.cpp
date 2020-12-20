@@ -220,16 +220,6 @@ void DockingManager::showContainer(HWND hCont, bool display)
 	}
 }
 
-void DockingManager::showFloatingContainers(bool show)
-{
-	for (size_t i=0; i < _vContainer.size(); i++)
-	{
-		size_t iElementCnt = _vContainer[i]->getElementCnt();
-		if (iElementCnt > 0)
-			_vContainer[i]->display(show);
-	}
-}
-
 LRESULT DockingManager::runProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
 	switch (message)
@@ -257,8 +247,7 @@ LRESULT DockingManager::runProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM l
 		case WM_DESTROY:
 		{
 			// unregister window event hooking BEFORE EVERYTHING ELSE
-			if (hWndServer == hwnd)
-			{
+			if (hWndServer == hwnd) {
 				UnhookWindowsHookEx(gWinCallHook);
 				gWinCallHook = NULL;
 				hWndServer = NULL;
@@ -371,6 +360,8 @@ LRESULT DockingManager::runProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM l
 		{
 			tTbData	TbData	= *(reinterpret_cast<DockingCont*>(lParam))->getDataOfActiveTb();
 			LRESULT res = SendNotify(TbData.hClient, DMN_CLOSE);	// Be sure the active item is OK with closing
+			if (res == 0)	// Item will be closing?
+				::PostMessage(_hParent, WM_ACTIVATE, WA_ACTIVE, 0);	// Tell editor to take back focus
 			return res;
 		}
 		case DMM_FLOATALL:
@@ -579,7 +570,7 @@ void DockingManager::createDockableDlg(tTbData data, int iCont, bool isVisible)
 		// create image list if not exist
 		if (_hImageList == NULL)
 		{
-			int iconDpiDynamicalSize = NppParameters::getInstance()._dpiManager.scaleY(14);
+			int iconDpiDynamicalSize = NppParameters::getInstance()->_dpiManager.scaleY(14);
 			_hImageList = ::ImageList_Create(iconDpiDynamicalSize,iconDpiDynamicalSize,ILC_COLOR8, 0, 0);
 		}
 

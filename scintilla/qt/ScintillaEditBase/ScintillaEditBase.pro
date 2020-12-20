@@ -10,9 +10,8 @@ greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
 TARGET = ScintillaEditBase
 TEMPLATE = lib
 CONFIG += lib_bundle
-CONFIG += c++1z
 
-VERSION = 4.2.0
+VERSION = 3.5.6
 
 SOURCES += \
     PlatQt.cpp \
@@ -20,7 +19,6 @@ SOURCES += \
     ScintillaEditBase.cpp \
     ../../src/XPM.cxx \
     ../../src/ViewStyle.cxx \
-    ../../src/UniqueString.cxx \
     ../../src/UniConversion.cxx \
     ../../src/Style.cxx \
     ../../src/Selection.cxx \
@@ -39,7 +37,6 @@ SOURCES += \
     ../../src/EditModel.cxx \
     ../../src/Document.cxx \
     ../../src/Decoration.cxx \
-    ../../src/DBCS.cxx \
     ../../src/ContractionState.cxx \
     ../../src/CharClassify.cxx \
     ../../src/CellBuffer.cxx \
@@ -55,11 +52,10 @@ SOURCES += \
     ../../lexlib/LexerNoExceptions.cxx \
     ../../lexlib/LexerModule.cxx \
     ../../lexlib/LexerBase.cxx \
-    ../../lexlib/DefaultLexer.cxx \
     ../../lexlib/CharacterSet.cxx \
     ../../lexlib/Accessor.cxx \
     ../../lexlib/CharacterCategory.cxx \
-    $$files(../../lexers/*.cxx, false)
+    ../../lexers/*.cxx
 
 HEADERS  += \
     PlatQt.h \
@@ -68,6 +64,7 @@ HEADERS  += \
     ../../src/XPM.h \
     ../../src/ViewStyle.h \
     ../../src/UniConversion.h \
+    ../../src/UnicodeFromUTF8.h \
     ../../src/Style.h \
     ../../src/SplitVector.h \
     ../../src/Selection.h \
@@ -116,9 +113,6 @@ OTHER_FILES +=
 INCLUDEPATH += ../../include ../../src ../../lexlib
 
 DEFINES += SCINTILLA_QT=1 MAKING_LIBRARY=1 SCI_LEXER=1 _CRT_SECURE_NO_DEPRECATE=1
-CONFIG(release, debug|release) {
-    DEFINES += NDEBUG=1
-}
 
 DESTDIR = ../../bin
 

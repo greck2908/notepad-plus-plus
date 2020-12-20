@@ -31,9 +31,10 @@
 #include "LexerModule.h"
 #include "OptionSet.h"
 #include "SparseState.h"
-#include "DefaultLexer.h"
 
+#ifdef SCI_NAMESPACE
 using namespace Scintilla;
+#endif
 
 static inline bool IsAWordChar(int ch, bool sqlAllowDottedWord) {
 	if (!sqlAllowDottedWord)
@@ -65,7 +66,7 @@ typedef unsigned int sql_state_t;
 
 class SQLStates {
 public :
-	void Set(Sci_Position lineNumber, unsigned short int sqlStatesLine) {
+	void Set(int lineNumber, unsigned short int sqlStatesLine) {
 		sqlStatement.Set(lineNumber, sqlStatesLine);
 	}
 
@@ -213,7 +214,7 @@ public :
 		return (sqlStatesLine & MASK_INTO_CREATE_VIEW_AS_STATEMENT) != 0;
 	}
 
-	sql_state_t ForLine(Sci_Position lineNumber) {
+	sql_state_t ForLine(int lineNumber) {
 		return sqlStatement.ValueAt(lineNumber);
 	}
 
@@ -301,52 +302,52 @@ struct OptionSetSQL : public OptionSet<OptionsSQL> {
 	}
 };
 
-class LexerSQL : public DefaultLexer {
+class LexerSQL : public ILexer {
 public :
 	LexerSQL() {}
 
 	virtual ~LexerSQL() {}
 
-	int SCI_METHOD Version () const override {
-		return lvRelease4;
+	int SCI_METHOD Version () const {
+		return lvOriginal;
 	}
 
-	void SCI_METHOD Release() override {
+	void SCI_METHOD Release() {
 		delete this;
 	}
 
-	const char * SCI_METHOD PropertyNames() override {
+	const char * SCI_METHOD PropertyNames() {
 		return osSQL.PropertyNames();
 	}
 
-	int SCI_METHOD PropertyType(const char *name) override {
+	int SCI_METHOD PropertyType(const char *name) {
 		return osSQL.PropertyType(name);
 	}
 
-	const char * SCI_METHOD DescribeProperty(const char *name) override {
+	const char * SCI_METHOD DescribeProperty(const char *name) {
 		return osSQL.DescribeProperty(name);
 	}
 
-	Sci_Position SCI_METHOD PropertySet(const char *key, const char *val) override {
+	int SCI_METHOD PropertySet(const char *key, const char *val) {
 		if (osSQL.PropertySet(&options, key, val)) {
 			return 0;
 		}
 		return -1;
 	}
 
-	const char * SCI_METHOD DescribeWordListSets() override {
+	const char * SCI_METHOD DescribeWordListSets() {
 		return osSQL.DescribeWordListSets();
 	}
 
-	Sci_Position SCI_METHOD WordListSet(int n, const char *wl) override;
-	void SCI_METHOD Lex(Sci_PositionU startPos, Sci_Position length, int initStyle, IDocument *pAccess) override;
-	void SCI_METHOD Fold(Sci_PositionU startPos, Sci_Position length, int initStyle, IDocument *pAccess) override;
+	int SCI_METHOD WordListSet(int n, const char *wl);
+	void SCI_METHOD Lex (unsigned int startPos, int lengthDoc, int initStyle, IDocument *pAccess);
+	void SCI_METHOD Fold(unsigned int startPos, int lengthDoc, int initStyle, IDocument *pAccess);
 
-	void * SCI_METHOD PrivateCall(int, void *) override {
+	void * SCI_METHOD PrivateCall(int, void *) {
 		return 0;
 	}
 
-	static ILexer4 *LexerFactorySQL() {
+	static ILexer *LexerFactorySQL() {
 		return new LexerSQL();
 	}
 private:
@@ -371,10 +372,10 @@ private:
 		}
 	}
 
-	bool IsCommentLine (Sci_Position line, LexAccessor &styler) {
-		Sci_Position pos = styler.LineStart(line);
-		Sci_Position eol_pos = styler.LineStart(line + 1) - 1;
-		for (Sci_Position i = pos; i + 1 < eol_pos; i++) {
+	bool IsCommentLine (int line, LexAccessor &styler) {
+		int pos = styler.LineStart(line);
+		int eol_pos = styler.LineStart(line + 1) - 1;
+		for (int i = pos; i + 1 < eol_pos; i++) {
 			int style = styler.StyleAt(i);
 			// MySQL needs -- comments to be followed by space or control char
 			if (style == SCE_SQL_COMMENTLINE && styler.Match(i, "--"))
@@ -399,7 +400,7 @@ private:
 	WordList kw_user4;
 };
 
-Sci_Position SCI_METHOD LexerSQL::WordListSet(int n, const char *wl) {
+int SCI_METHOD LexerSQL::WordListSet(int n, const char *wl) {
 	WordList *wordListN = 0;
 	switch (n) {
 	case 0:
@@ -426,7 +427,7 @@ Sci_Position SCI_METHOD LexerSQL::WordListSet(int n, const char *wl) {
 	case 7:
 		wordListN = &kw_user4;
 	}
-	Sci_Position firstModification = -1;
+	int firstModification = -1;
 	if (wordListN) {
 		WordList wlNew;
 		wlNew.Set(wl);
@@ -438,12 +439,13 @@ Sci_Position SCI_METHOD LexerSQL::WordListSet(int n, const char *wl) {
 	return firstModification;
 }
 
-void SCI_METHOD LexerSQL::Lex(Sci_PositionU startPos, Sci_Position length, int initStyle, IDocument *pAccess) {
+void SCI_METHOD LexerSQL::Lex(unsigned int startPos, int length, int initStyle, IDocument *pAccess) {
 	LexAccessor styler(pAccess);
 	StyleContext sc(startPos, length, initStyle, styler);
 	int styleBeforeDCKeyword = SCE_SQL_DEFAULT;
+	int offset = 0;
 
-	for (; sc.More(); sc.Forward()) {
+	for (; sc.More(); sc.Forward(), offset++) {
 		// Determine if the current state should terminate.
 		switch (sc.state) {
 		case SCE_SQL_OPERATOR:
@@ -536,7 +538,7 @@ void SCI_METHOD LexerSQL::Lex(Sci_PositionU startPos, Sci_Position length, int i
 			if (options.sqlBackslashEscapes && sc.ch == '\\') {
 				sc.Forward();
 			} else if (sc.ch == '\'') {
-				if (sc.chNext == '\'') {
+				if (sc.chNext == '\"') {
 					sc.Forward();
 				} else {
 					sc.ForwardSetState(SCE_SQL_DEFAULT);
@@ -544,7 +546,7 @@ void SCI_METHOD LexerSQL::Lex(Sci_PositionU startPos, Sci_Position length, int i
 			}
 			break;
 		case SCE_SQL_STRING:
-			if (options.sqlBackslashEscapes && sc.ch == '\\') {
+			if (sc.ch == '\\') {
 				// Escape sequence
 				sc.Forward();
 			} else if (sc.ch == '\"') {
@@ -559,14 +561,14 @@ void SCI_METHOD LexerSQL::Lex(Sci_PositionU startPos, Sci_Position length, int i
 			// Locate the unique Q operator character
 			sc.Complete();
 			char qOperator = 0x00;
-			for (Sci_Position styleStartPos = sc.currentPos; styleStartPos > 0; --styleStartPos) {
+			for (int styleStartPos = sc.currentPos; styleStartPos > 0; --styleStartPos) {
 				if (styler.StyleAt(styleStartPos - 1) != SCE_SQL_QOPERATOR) {
 					qOperator = styler.SafeGetCharAt(styleStartPos + 2);
 					break;
 				}
 			}
-
-			char qComplement = 0x00;
+			
+			char qComplement = 0x00;						
 
 			if (qOperator == '<') {
 				qComplement = '>';
@@ -578,8 +580,8 @@ void SCI_METHOD LexerSQL::Lex(Sci_PositionU startPos, Sci_Position length, int i
 				qComplement = ']';
 			} else {
 				qComplement = qOperator;
-			}
-
+			}	
+				
 			if (sc.Match(qComplement, '\'')) {
 				sc.Forward();
 				sc.ForwardSetState(SCE_SQL_DEFAULT);
@@ -590,7 +592,7 @@ void SCI_METHOD LexerSQL::Lex(Sci_PositionU startPos, Sci_Position length, int i
 		// Determine if a new state should be entered.
 		if (sc.state == SCE_SQL_DEFAULT) {
 			if (sc.Match('q', '\'') || sc.Match('Q', '\'')) {
-				sc.SetState(SCE_SQL_QOPERATOR);
+				sc.SetState(SCE_SQL_QOPERATOR);			
 				sc.Forward();
 			} else if (IsADigit(sc.ch) || (sc.ch == '.' && IsADigit(sc.chNext)) ||
 			          ((sc.ch == '-' || sc.ch == '+') && IsADigit(sc.chNext) && !IsADigit(sc.chPrev))) {
@@ -626,18 +628,18 @@ void SCI_METHOD LexerSQL::Lex(Sci_PositionU startPos, Sci_Position length, int i
 	sc.Complete();
 }
 
-void SCI_METHOD LexerSQL::Fold(Sci_PositionU startPos, Sci_Position length, int initStyle, IDocument *pAccess) {
+void SCI_METHOD LexerSQL::Fold(unsigned int startPos, int length, int initStyle, IDocument *pAccess) {
 	if (!options.fold)
 		return;
 	LexAccessor styler(pAccess);
-	Sci_PositionU endPos = startPos + length;
+	unsigned int endPos = startPos + length;
 	int visibleChars = 0;
-	Sci_Position lineCurrent = styler.GetLine(startPos);
+	int lineCurrent = styler.GetLine(startPos);
 	int levelCurrent = SC_FOLDLEVELBASE;
 
 	if (lineCurrent > 0) {
 		// Backtrack to previous line in case need to fix its fold status for folding block of single-line comments (i.e. '--').
-		Sci_Position lastNLPos = -1;
+		int lastNLPos = -1;
 		// And keep going back until we find an operator ';' followed
 		// by white-space and/or comments. This will improve folding.
 		while (--startPos > 0) {
@@ -647,7 +649,7 @@ void SCI_METHOD LexerSQL::Fold(Sci_PositionU startPos, Sci_Position length, int 
 			} else if (ch == ';' &&
 				   styler.StyleAt(startPos) == SCE_SQL_OPERATOR) {
 				bool isAllClear = true;
-				for (Sci_Position tempPos = startPos + 1;
+				for (int tempPos = startPos + 1;
 				     tempPos < lastNLPos;
 				     ++tempPos) {
 					int tempStyle = styler.StyleAt(tempPos);
@@ -670,7 +672,7 @@ void SCI_METHOD LexerSQL::Fold(Sci_PositionU startPos, Sci_Position length, int 
 	// And because folding ends at ';', keep going until we find one
 	// Otherwise if create ... view ... as is split over multiple
 	// lines the folding won't always update immediately.
-	Sci_PositionU docLength = styler.Length();
+	unsigned int docLength = styler.Length();
 	for (; endPos < docLength; ++endPos) {
 		if (styler.SafeGetCharAt(endPos) == ';') {
 			break;
@@ -690,7 +692,7 @@ void SCI_METHOD LexerSQL::Fold(Sci_PositionU startPos, Sci_Position length, int 
 	if (!options.foldOnlyBegin) {
 		sqlStatesCurrentLine = sqlStates.ForLine(lineCurrent);
 	}
-	for (Sci_PositionU i = startPos; i < endPos; i++) {
+	for (unsigned int i = startPos; i < endPos; i++) {
 		char ch = chNext;
 		chNext = styler.SafeGetCharAt(i + 1);
 		int stylePrev = style;

@@ -28,7 +28,9 @@
 #include "CharacterSet.h"
 #include "LexerModule.h"
 
+#ifdef SCI_NAMESPACE
 using namespace Scintilla;
+#endif
 
 static inline bool IsAWordChar(int ch) {
 	return (ch < 0x80) && (isalnum(ch) || ch == '_');
@@ -53,7 +55,7 @@ static inline bool IsANumberChar(int ch) {
  */
 static void CheckForKeyword(StyleContext& sc, WordList* keywordlists[], int activeState)
 {
-  Sci_Position length = sc.LengthCurrent() + 1; // +1 for the next char
+  int length = sc.LengthCurrent() + 1; // +1 for the next char
   char* s = new char[length];
   sc.GetCurrentLowered(s, length);
   if (keywordlists[0]->InList(s))
@@ -103,7 +105,7 @@ static void ForwardDefaultState(StyleContext& sc, int activeState)
     sc.ForwardSetState(SCE_MYSQL_HIDDENCOMMAND);
 }
 
-static void ColouriseMySQLDoc(Sci_PositionU startPos, Sci_Position length, int initStyle, WordList *keywordlists[],
+static void ColouriseMySQLDoc(unsigned int startPos, int length, int initStyle, WordList *keywordlists[],
                             Accessor &styler)
 {
 	StyleContext sc(startPos, length, initStyle, styler, 127);
@@ -148,7 +150,7 @@ static void ColouriseMySQLDoc(Sci_PositionU startPos, Sci_Position length, int i
       case SCE_MYSQL_SYSTEMVARIABLE:
         if (!IsAWordChar(sc.ch))
         {
-          Sci_Position length = sc.LengthCurrent() + 1;
+          int length = sc.LengthCurrent() + 1;
           char* s = new char[length];
           sc.GetCurrentLowered(s, length);
 
@@ -265,13 +267,10 @@ static void ColouriseMySQLDoc(Sci_PositionU startPos, Sci_Position length, int i
               {
                 sc.SetState(SCE_MYSQL_COMMENT | activeState);
 
-                // Skip first char of comment introducer and check for hidden command.
-                // The second char is skipped by the outer loop.
-                sc.Forward();
-                if (sc.GetRelativeCharacter(1) == '!')
+                // Skip comment introducer and check for hidden command.
+                sc.Forward(2);
+                if (sc.ch == '!')
                 {
-                  // Version comment found. Skip * now.
-                  sc.Forward();
                   activeState = HIDDENCOMMAND_STATE;
                   sc.ChangeState(SCE_MYSQL_HIDDENCOMMAND);
                 }
@@ -329,9 +328,9 @@ static bool IsStreamCommentStyle(int style)
  * Code copied from StyleContext and modified to work here. Should go into Accessor as a
  * companion to Match()...
  */
-static bool MatchIgnoreCase(Accessor &styler, Sci_Position currentPos, const char *s)
+bool MatchIgnoreCase(Accessor &styler, int currentPos, const char *s)
 {
-  for (Sci_Position n = 0; *s; n++)
+  for (int n = 0; *s; n++)
   {
     if (*s != tolower(styler.SafeGetCharAt(currentPos + n)))
       return false;
@@ -344,14 +343,14 @@ static bool MatchIgnoreCase(Accessor &styler, Sci_Position currentPos, const cha
 
 // Store both the current line's fold level and the next lines in the
 // level store to make it easy to pick up with each increment.
-static void FoldMySQLDoc(Sci_PositionU startPos, Sci_Position length, int initStyle, WordList *[], Accessor &styler)
+static void FoldMySQLDoc(unsigned int startPos, int length, int initStyle, WordList *[], Accessor &styler)
 {
 	bool foldComment = styler.GetPropertyInt("fold.comment") != 0;
 	bool foldCompact = styler.GetPropertyInt("fold.compact", 1) != 0;
 	bool foldOnlyBegin = styler.GetPropertyInt("fold.sql.only.begin", 0) != 0;
 
 	int visibleChars = 0;
-	Sci_Position lineCurrent = styler.GetLine(startPos);
+	int lineCurrent = styler.GetLine(startPos);
 	int levelCurrent = SC_FOLDLEVELBASE;
 	if (lineCurrent > 0)
 		levelCurrent = styler.LevelAt(lineCurrent - 1) >> 16;
@@ -360,24 +359,24 @@ static void FoldMySQLDoc(Sci_PositionU startPos, Sci_Position length, int initSt
 	int styleNext = styler.StyleAt(startPos);
 	int style = initStyle;
   int activeState = (style == SCE_MYSQL_HIDDENCOMMAND) ? HIDDENCOMMAND_STATE : style & HIDDENCOMMAND_STATE;
-
+	
   bool endPending = false;
 	bool whenPending = false;
 	bool elseIfPending = false;
 
   char nextChar = styler.SafeGetCharAt(startPos);
-  for (Sci_PositionU i = startPos; length > 0; i++, length--)
+  for (unsigned int i = startPos; length > 0; i++, length--)
   {
 		int stylePrev = style;
     int lastActiveState = activeState;
 		style = styleNext;
 		styleNext = styler.StyleAt(i + 1);
     activeState = (style == SCE_MYSQL_HIDDENCOMMAND) ? HIDDENCOMMAND_STATE : style & HIDDENCOMMAND_STATE;
-
+    
     char currentChar = nextChar;
     nextChar = styler.SafeGetCharAt(i + 1);
 		bool atEOL = (currentChar == '\r' && nextChar != '\n') || (currentChar == '\n');
-
+	
     switch (MASKACTIVE(style))
     {
       case SCE_MYSQL_COMMENT:
@@ -390,7 +389,7 @@ static void FoldMySQLDoc(Sci_PositionU startPos, Sci_Position length, int initSt
         break;
       case SCE_MYSQL_COMMENTLINE:
         if (foldComment)
-        {
+        { 
           // Not really a standard, but we add support for single line comments
           // with special curly braces syntax as foldable comments too.
           // MySQL needs -- comments to be followed by space or control char
@@ -498,12 +497,12 @@ static void FoldMySQLDoc(Sci_PositionU startPos, Sci_Position length, int initSt
                 }
               }
             }
-
+          
           // Keep the current end state for the next round.
           endPending = endFound;
         }
         break;
-
+        
       default:
         if (!isspacechar(currentChar) && endPending)
         {
@@ -545,7 +544,7 @@ static void FoldMySQLDoc(Sci_PositionU startPos, Sci_Position length, int initSt
         lev |= SC_FOLDLEVELHEADERFLAG;
       if (lev != styler.LevelAt(lineCurrent))
         styler.SetLevel(lineCurrent, lev);
-
+      
       lineCurrent++;
       levelCurrent = levelNext;
       visibleChars = 0;

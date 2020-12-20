@@ -12,11 +12,10 @@
 					<Item menuId="encoding" name="&amp;פורמט"/>
 					<Item menuId="language" name="&amp;שפה"/>
 					<Item menuId="settings" name="&amp;הגדרות"/>
-					<Item menuId="tools" name="&amp;כלים"/>
 					<Item menuId="macro" name="מאקרו מקשים"/>
 					<Item menuId="run" name="הפעלה"/>
 					<Item idName="Plugins" name="תוספים"/>
-					<Item idName="Window"  name="חלון"/>
+					<Item idName="Window"  name="תמיכה"/>
 
 				</Entries>
 

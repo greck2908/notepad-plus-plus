@@ -12,25 +12,20 @@
 #include <stdarg.h>
 #include <assert.h>
 
-#include <string>
-#include <vector>
-#include <map>
-
 #include "ILexer.h"
 #include "Scintilla.h"
 #include "SciLexer.h"
 
-#include "StringCopy.h"
 #include "WordList.h"
 #include "LexAccessor.h"
+#include "Accessor.h"
 #include "StyleContext.h"
 #include "CharacterSet.h"
 #include "LexerModule.h"
-#include "OptionSet.h"
-#include "SubStyles.h"
-#include "DefaultLexer.h"
 
+#ifdef SCI_NAMESPACE
 using namespace Scintilla;
+#endif
 
 #define HERE_DELIM_MAX			256
 
@@ -65,9 +60,7 @@ using namespace Scintilla;
 
 #define BASH_DELIM_STACK_MAX	7
 
-namespace {
-
-inline int translateBashDigit(int ch) {
+static inline int translateBashDigit(int ch) {
 	if (ch >= '0' && ch <= '9') {
 		return ch - '0';
 	} else if (ch >= 'a' && ch <= 'z') {
@@ -82,7 +75,7 @@ inline int translateBashDigit(int ch) {
 	return BASH_BASE_ERROR;
 }
 
-inline int getBashNumberBase(char *s) {
+static inline int getBashNumberBase(char *s) {
 	int i = 0;
 	int base = 0;
 	while (*s) {
@@ -95,7 +88,7 @@ inline int getBashNumberBase(char *s) {
 	return base;
 }
 
-int opposite(int ch) {
+static int opposite(int ch) {
 	if (ch == '(') return ')';
 	if (ch == '[') return ']';
 	if (ch == '{') return '}';
@@ -103,197 +96,10 @@ int opposite(int ch) {
 	return ch;
 }
 
-int GlobScan(StyleContext &sc) {
-	// forward scan for zsh globs, disambiguate versus bash arrays
-	// complex expressions may still fail, e.g. unbalanced () '' "" etc
-	int c, sLen = 0;
-	int pCount = 0;
-	int hash = 0;
-	while ((c = sc.GetRelativeCharacter(++sLen)) != 0) {
-		if (IsASpace(c)) {
-			return 0;
-		} else if (c == '\'' || c == '\"') {
-			if (hash != 2) return 0;
-		} else if (c == '#' && hash == 0) {
-			hash = (sLen == 1) ? 2:1;
-		} else if (c == '(') {
-			pCount++;
-		} else if (c == ')') {
-			if (pCount == 0) {
-				if (hash) return sLen;
-				return 0;
-			}
-			pCount--;
-		}
-	}
-	return 0;
-}
+static void ColouriseBashDoc(unsigned int startPos, int length, int initStyle,
+							 WordList *keywordlists[], Accessor &styler) {
 
-bool IsCommentLine(Sci_Position line, LexAccessor &styler) {
-	Sci_Position pos = styler.LineStart(line);
-	Sci_Position eol_pos = styler.LineStart(line + 1) - 1;
-	for (Sci_Position i = pos; i < eol_pos; i++) {
-		char ch = styler[i];
-		if (ch == '#')
-			return true;
-		else if (ch != ' ' && ch != '\t')
-			return false;
-	}
-	return false;
-}
-
-struct OptionsBash {
-	bool fold;
-	bool foldComment;
-	bool foldCompact;
-
-	OptionsBash() {
-		fold = false;
-		foldComment = false;
-		foldCompact = true;
-	}
-};
-
-const char * const bashWordListDesc[] = {
-	"Keywords",
-	0
-};
-
-struct OptionSetBash : public OptionSet<OptionsBash> {
-	OptionSetBash() {
-		DefineProperty("fold", &OptionsBash::fold);
-
-		DefineProperty("fold.comment", &OptionsBash::foldComment);
-
-		DefineProperty("fold.compact", &OptionsBash::foldCompact);
-
-		DefineWordListSets(bashWordListDesc);
-	}
-};
-
-const char styleSubable[] = { SCE_SH_IDENTIFIER, SCE_SH_SCALAR, 0 };
-
-LexicalClass lexicalClasses[] = {
-	// Lexer Bash SCLEX_BASH SCE_SH_:
-	0, "SCE_SH_DEFAULT", "default", "White space",
-	1, "SCE_SH_ERROR", "error", "Error",
-	2, "SCE_SH_COMMENTLINE", "comment line", "Line comment: #",
-	3, "SCE_SH_NUMBER", "literal numeric", "Number",
-	4, "SCE_SH_WORD", "keyword", "Keyword",
-	5, "SCE_SH_STRING", "literal string", "String",
-	6, "SCE_SH_CHARACTER", "literal string", "Single quoted string",
-	7, "SCE_SH_OPERATOR", "operator", "Operators",
-	8, "SCE_SH_IDENTIFIER", "identifier", "Identifiers",
-	9, "SCE_SH_SCALAR", "identifier", "Scalar variable",
-	10, "SCE_SH_PARAM", "identifier", "Parameter",
-	11, "SCE_SH_BACKTICKS", "literal string", "Backtick quoted command",
-	12, "SCE_SH_HERE_DELIM", "operator", "Heredoc delimiter",
-	13, "SCE_SH_HERE_Q", "literal string", "Heredoc quoted string",
-};
-
-}
-
-class LexerBash : public DefaultLexer {
-	WordList keywords;
-	OptionsBash options;
-	OptionSetBash osBash;
-	enum { ssIdentifier, ssScalar };
-	SubStyles subStyles;
-public:
-	LexerBash() :
-		DefaultLexer(lexicalClasses, ELEMENTS(lexicalClasses)),
-		subStyles(styleSubable, 0x80, 0x40, 0) {
-	}
-	virtual ~LexerBash() {
-	}
-	void SCI_METHOD Release() override {
-		delete this;
-	}
-	int SCI_METHOD Version() const override {
-		return lvRelease4;
-	}
-	const char * SCI_METHOD PropertyNames() override {
-		return osBash.PropertyNames();
-	}
-	int SCI_METHOD PropertyType(const char* name) override {
-		return osBash.PropertyType(name);
-	}
-	const char * SCI_METHOD DescribeProperty(const char *name) override {
-		return osBash.DescribeProperty(name);
-	}
-	Sci_Position SCI_METHOD PropertySet(const char *key, const char *val) override;
-	const char * SCI_METHOD DescribeWordListSets() override {
-		return osBash.DescribeWordListSets();
-	}
-	Sci_Position SCI_METHOD WordListSet(int n, const char *wl) override;
-	void SCI_METHOD Lex(Sci_PositionU startPos, Sci_Position length, int initStyle, IDocument *pAccess) override;
-	void SCI_METHOD Fold(Sci_PositionU startPos, Sci_Position length, int initStyle, IDocument *pAccess) override;
-
-	void * SCI_METHOD PrivateCall(int, void *) override {
-		return 0;
-	}
-
-	int SCI_METHOD AllocateSubStyles(int styleBase, int numberStyles) override {
-		return subStyles.Allocate(styleBase, numberStyles);
-	}
-	int SCI_METHOD SubStylesStart(int styleBase) override {
-		return subStyles.Start(styleBase);
-	}
-	int SCI_METHOD SubStylesLength(int styleBase) override {
-		return subStyles.Length(styleBase);
-	}
-	int SCI_METHOD StyleFromSubStyle(int subStyle) override {
-		const int styleBase = subStyles.BaseStyle(subStyle);
-		return styleBase;
-	}
-	int SCI_METHOD PrimaryStyleFromStyle(int style) override {
-		return style;
-	}
-	void SCI_METHOD FreeSubStyles() override {
-		subStyles.Free();
-	}
-	void SCI_METHOD SetIdentifiers(int style, const char *identifiers) override {
-		subStyles.SetIdentifiers(style, identifiers);
-	}
-	int SCI_METHOD DistanceToSecondaryStyles() override {
-		return 0;
-	}
-	const char *SCI_METHOD GetSubStyleBases() override {
-		return styleSubable;
-	}
-
-	static ILexer4 *LexerFactoryBash() {
-		return new LexerBash();
-	}
-};
-
-Sci_Position SCI_METHOD LexerBash::PropertySet(const char *key, const char *val) {
-	if (osBash.PropertySet(&options, key, val)) {
-		return 0;
-	}
-	return -1;
-}
-
-Sci_Position SCI_METHOD LexerBash::WordListSet(int n, const char *wl) {
-	WordList *wordListN = 0;
-	switch (n) {
-	case 0:
-		wordListN = &keywords;
-		break;
-	}
-	Sci_Position firstModification = -1;
-	if (wordListN) {
-		WordList wlNew;
-		wlNew.Set(wl);
-		if (*wordListN != wlNew) {
-			wordListN->Set(wl);
-			firstModification = 0;
-		}
-	}
-	return firstModification;
-}
-
-void SCI_METHOD LexerBash::Lex(Sci_PositionU startPos, Sci_Position length, int initStyle, IDocument *pAccess) {
+	WordList &keywords = *keywordlists[0];
 	WordList cmdDelimiter, bashStruct, bashStruct_in;
 	cmdDelimiter.Set("| || |& & && ; ;; ( ) { }");
 	bashStruct.Set("if elif fi while until else then do done esac eval");
@@ -307,9 +113,9 @@ void SCI_METHOD LexerBash::Lex(Sci_PositionU startPos, Sci_Position length, int 
 	CharacterSet setBashOperator(CharacterSet::setNone, "^&%()-+=|{}[]:;>,*/<?!.~@");
 	CharacterSet setSingleCharOp(CharacterSet::setNone, "rwxoRWXOezsfdlpSbctugkTBMACahGLNn");
 	CharacterSet setParam(CharacterSet::setAlphaNum, "$_");
-	CharacterSet setHereDoc(CharacterSet::setAlpha, "_\\-+!%*,./:?@[]^`{}~");
-	CharacterSet setHereDoc2(CharacterSet::setAlphaNum, "_-+!%*,./:=?@[]^`{}~");
-	CharacterSet setLeftShift(CharacterSet::setDigits, "$");
+	CharacterSet setHereDoc(CharacterSet::setAlpha, "_\\-+!");
+	CharacterSet setHereDoc2(CharacterSet::setAlphaNum, "_-+!");
+	CharacterSet setLeftShift(CharacterSet::setDigits, "=$");
 
 	class HereDocCls {	// Class to manage HERE document elements
 	public:
@@ -320,13 +126,14 @@ void SCI_METHOD LexerBash::Lex(Sci_PositionU startPos, Sci_Position length, int 
 		bool Quoted;		// true if Quote in ('\'','"','`')
 		bool Indent;		// indented delimiter (for <<-)
 		int DelimiterLength;	// strlen(Delimiter)
-		char Delimiter[HERE_DELIM_MAX];	// the Delimiter
+		char *Delimiter;	// the Delimiter, 256: sizeof PL_tokenbuf
 		HereDocCls() {
 			State = 0;
 			Quote = 0;
 			Quoted = false;
 			Indent = 0;
 			DelimiterLength = 0;
+			Delimiter = new char[HERE_DELIM_MAX];
 			Delimiter[0] = '\0';
 		}
 		void Append(int ch) {
@@ -334,6 +141,7 @@ void SCI_METHOD LexerBash::Lex(Sci_PositionU startPos, Sci_Position length, int 
 			Delimiter[DelimiterLength] = '\0';
 		}
 		~HereDocCls() {
+			delete []Delimiter;
 		}
 	};
 	HereDocCls HereDoc;
@@ -365,15 +173,18 @@ void SCI_METHOD LexerBash::Lex(Sci_PositionU startPos, Sci_Position length, int 
 		int Up, Down;
 		int Style;
 		int Depth;			// levels pushed
-		int CountStack[BASH_DELIM_STACK_MAX];
-		int UpStack   [BASH_DELIM_STACK_MAX];
-		int StyleStack[BASH_DELIM_STACK_MAX];
+		int *CountStack;
+		int *UpStack;
+		int *StyleStack;
 		QuoteStackCls() {
 			Count = 0;
 			Up    = '\0';
 			Down  = '\0';
 			Style = 0;
 			Depth = 0;
+			CountStack = new int[BASH_DELIM_STACK_MAX];
+			UpStack    = new int[BASH_DELIM_STACK_MAX];
+			StyleStack = new int[BASH_DELIM_STACK_MAX];
 		}
 		void Start(int u, int s) {
 			Count = 1;
@@ -403,24 +214,23 @@ void SCI_METHOD LexerBash::Lex(Sci_PositionU startPos, Sci_Position length, int 
 			Down  = opposite(Up);
 		}
 		~QuoteStackCls() {
+			delete []CountStack;
+			delete []UpStack;
+			delete []StyleStack;
 		}
 	};
 	QuoteStackCls QuoteStack;
 
-	const WordClassifier &classifierIdentifiers = subStyles.Classifier(SCE_SH_IDENTIFIER);
-	const WordClassifier &classifierScalars = subStyles.Classifier(SCE_SH_SCALAR);
-
 	int numBase = 0;
 	int digit;
-	Sci_PositionU endPos = startPos + length;
+	unsigned int endPos = startPos + length;
 	int cmdState = BASH_CMD_START;
 	int testExprType = 0;
-	LexAccessor styler(pAccess);
 
 	// Always backtracks to the start of a line that is not a continuation
 	// of the previous line (i.e. start of a bash command segment)
-	Sci_Position ln = styler.GetLine(startPos);
-	if (ln > 0 && startPos == static_cast<Sci_PositionU>(styler.LineStart(ln)))
+	int ln = styler.GetLine(startPos);
+	if (ln > 0 && startPos == static_cast<unsigned int>(styler.LineStart(ln)))
 		ln--;
 	for (;;) {
 		startPos = styler.LineStart(ln);
@@ -480,11 +290,6 @@ void SCI_METHOD LexerBash::Lex(Sci_PositionU startPos, Sci_Position length, int 
 					char s[500];
 					char s2[10];
 					sc.GetCurrent(s, sizeof(s));
-					int identifierStyle = SCE_SH_IDENTIFIER;
-					int subStyle = classifierIdentifiers.ValueFor(s);
-					if (subStyle >= 0) {
-						identifierStyle = subStyle;
-					}
 					// allow keywords ending in a whitespace or command delimiter
 					s2[0] = static_cast<char>(sc.ch);
 					s2[1] = '\0';
@@ -496,7 +301,7 @@ void SCI_METHOD LexerBash::Lex(Sci_PositionU startPos, Sci_Position length, int 
 						else if (strcmp(s, "do") == 0 && keywordEnds)
 							cmdStateNew = BASH_CMD_START;
 						else
-							sc.ChangeState(identifierStyle);
+							sc.ChangeState(SCE_SH_IDENTIFIER);
 						sc.SetState(SCE_SH_DEFAULT);
 						break;
 					}
@@ -506,49 +311,40 @@ void SCI_METHOD LexerBash::Lex(Sci_PositionU startPos, Sci_Position length, int 
 							cmdStateNew = BASH_CMD_TEST;
 							testExprType = 0;
 						} else
-							sc.ChangeState(identifierStyle);
+							sc.ChangeState(SCE_SH_IDENTIFIER);
 					}
 					// detect bash construct keywords
 					else if (bashStruct.InList(s)) {
 						if (cmdState == BASH_CMD_START && keywordEnds)
 							cmdStateNew = BASH_CMD_START;
 						else
-							sc.ChangeState(identifierStyle);
+							sc.ChangeState(SCE_SH_IDENTIFIER);
 					}
 					// 'for'|'case'|'select' needs 'in'|'do' to be highlighted later
 					else if (bashStruct_in.InList(s)) {
 						if (cmdState == BASH_CMD_START && keywordEnds)
 							cmdStateNew = BASH_CMD_WORD;
 						else
-							sc.ChangeState(identifierStyle);
+							sc.ChangeState(SCE_SH_IDENTIFIER);
 					}
 					// disambiguate option items and file test operators
 					else if (s[0] == '-') {
 						if (cmdState != BASH_CMD_TEST)
-							sc.ChangeState(identifierStyle);
+							sc.ChangeState(SCE_SH_IDENTIFIER);
 					}
 					// disambiguate keywords and identifiers
 					else if (cmdState != BASH_CMD_START
 						  || !(keywords.InList(s) && keywordEnds)) {
-						sc.ChangeState(identifierStyle);
+						sc.ChangeState(SCE_SH_IDENTIFIER);
 					}
 					sc.SetState(SCE_SH_DEFAULT);
 				}
 				break;
 			case SCE_SH_IDENTIFIER:
-				if (sc.chPrev == '\\' || !setWord.Contains(sc.ch) ||
-					  (cmdState == BASH_CMD_ARITH && !setWordStart.Contains(sc.ch))) {
-					char s[500];
-					sc.GetCurrent(s, sizeof(s));
-					int subStyle = classifierIdentifiers.ValueFor(s);
-					if (subStyle >= 0) {
-						sc.ChangeState(subStyle);
-					}
-					if (sc.chPrev == '\\') {	// for escaped chars
-						sc.ForwardSetState(SCE_SH_DEFAULT);
-					} else {
-						sc.SetState(SCE_SH_DEFAULT);
-					}
+				if (sc.chPrev == '\\') {	// for escaped chars
+					sc.ForwardSetState(SCE_SH_DEFAULT);
+				} else if (!setWord.Contains(sc.ch)) {
+					sc.SetState(SCE_SH_DEFAULT);
 				}
 				break;
 			case SCE_SH_NUMBER:
@@ -623,18 +419,17 @@ void SCI_METHOD LexerBash::Lex(Sci_PositionU startPos, Sci_Position length, int 
 						sc.Forward();
 						HereDoc.Quoted = true;
 						HereDoc.State = 1;
-					} else if (setHereDoc.Contains(sc.chNext) ||
-					           (sc.chNext == '=' && cmdState != BASH_CMD_ARITH)) {
+					} else if (setHereDoc.Contains(sc.chNext)) {
 						// an unquoted here-doc delimiter, no special handling
+						// TODO check what exactly bash considers part of the delim
 						HereDoc.State = 1;
 					} else if (sc.chNext == '<') {	// HERE string <<<
 						sc.Forward();
 						sc.ForwardSetState(SCE_SH_DEFAULT);
 					} else if (IsASpace(sc.chNext)) {
 						// eat whitespace
-					} else if (setLeftShift.Contains(sc.chNext) ||
-					           (sc.chNext == '=' && cmdState == BASH_CMD_ARITH)) {
-						// left shift <<$var or <<= cases
+					} else if (setLeftShift.Contains(sc.chNext)) {
+						// left shift << or <<= operator cases
 						sc.ChangeState(SCE_SH_OPERATOR);
 						sc.ForwardSetState(SCE_SH_DEFAULT);
 					} else {
@@ -702,12 +497,6 @@ void SCI_METHOD LexerBash::Lex(Sci_PositionU startPos, Sci_Position length, int 
 				break;
 			case SCE_SH_SCALAR:	// variable names
 				if (!setParam.Contains(sc.ch)) {
-					char s[500];
-					sc.GetCurrent(s, sizeof(s));
-					int subStyle = classifierScalars.ValueFor(&s[1]); // skip the $
-					if (subStyle >= 0) {
-						sc.ChangeState(subStyle);
-					}
 					if (sc.LengthCurrent() == 1) {
 						// Special variable: $(, $_ etc.
 						sc.ForwardSetState(SCE_SH_DEFAULT);
@@ -795,14 +584,12 @@ void SCI_METHOD LexerBash::Lex(Sci_PositionU startPos, Sci_Position length, int 
 			HereDoc.State = 2;
 			if (HereDoc.Quoted) {
 				if (sc.state == SCE_SH_HERE_DELIM) {
-					// Missing quote at end of string! Syntax error in bash 4.3
-					// Mark this bit as an error, do not colour any here-doc
+					// Missing quote at end of string! We are stricter than bash.
+					// Colour here-doc anyway while marking this bit as an error.
 					sc.ChangeState(SCE_SH_ERROR);
-					sc.SetState(SCE_SH_DEFAULT);
-				} else {
-					// HereDoc.Quote always == '\''
-					sc.SetState(SCE_SH_HERE_Q);
 				}
+				// HereDoc.Quote always == '\''
+				sc.SetState(SCE_SH_HERE_Q);
 			} else if (HereDoc.DelimiterLength == 0) {
 				// no delimiter, illegal (but '' and "" are legal)
 				sc.ChangeState(SCE_SH_ERROR);
@@ -846,23 +633,6 @@ void SCI_METHOD LexerBash::Lex(Sci_PositionU startPos, Sci_Position length, int 
 					sc.SetState(SCE_SH_COMMENTLINE);
 				} else {
 					sc.SetState(SCE_SH_WORD);
-				}
-				// handle some zsh features within arithmetic expressions only
-				if (cmdState == BASH_CMD_ARITH) {
-					if (sc.chPrev == '[') {	// [#8] [##8] output digit setting
-						sc.SetState(SCE_SH_WORD);
-						if (sc.chNext == '#') {
-							sc.Forward();
-						}
-					} else if (sc.Match("##^") && IsUpperCase(sc.GetRelative(3))) {	// ##^A
-						sc.SetState(SCE_SH_IDENTIFIER);
-						sc.Forward(3);
-					} else if (sc.chNext == '#' && !IsASpace(sc.GetRelative(2))) {	// ##a
-						sc.SetState(SCE_SH_IDENTIFIER);
-						sc.Forward(2);
-					} else if (setWordStart.Contains(sc.chNext)) {	// #name
-						sc.SetState(SCE_SH_IDENTIFIER);
-					}
 				}
 			} else if (sc.ch == '\"') {
 				sc.SetState(SCE_SH_STRING);
@@ -917,15 +687,6 @@ void SCI_METHOD LexerBash::Lex(Sci_PositionU startPos, Sci_Position length, int 
 				char s[10];
 				bool isCmdDelim = false;
 				sc.SetState(SCE_SH_OPERATOR);
-				// globs have no whitespace, do not appear in arithmetic expressions
-				if (cmdState != BASH_CMD_ARITH && sc.ch == '(' && sc.chNext != '(') {
-					int i = GlobScan(sc);
-					if (i > 1) {
-						sc.SetState(SCE_SH_IDENTIFIER);
-						sc.Forward(i);
-						continue;
-					}
-				}
 				// handle opening delimiters for test/arithmetic expressions - ((,[[,[
 				if (cmdState == BASH_CMD_START
 				 || cmdState == BASH_CMD_BODY) {
@@ -991,30 +752,39 @@ void SCI_METHOD LexerBash::Lex(Sci_PositionU startPos, Sci_Position length, int 
 	sc.Complete();
 }
 
-void SCI_METHOD LexerBash::Fold(Sci_PositionU startPos, Sci_Position length, int, IDocument *pAccess) {
-	if(!options.fold)
-		return;
+static bool IsCommentLine(int line, Accessor &styler) {
+	int pos = styler.LineStart(line);
+	int eol_pos = styler.LineStart(line + 1) - 1;
+	for (int i = pos; i < eol_pos; i++) {
+		char ch = styler[i];
+		if (ch == '#')
+			return true;
+		else if (ch != ' ' && ch != '\t')
+			return false;
+	}
+	return false;
+}
 
-	LexAccessor styler(pAccess);
-
-	Sci_PositionU endPos = startPos + length;
+static void FoldBashDoc(unsigned int startPos, int length, int, WordList *[],
+						Accessor &styler) {
+	bool foldComment = styler.GetPropertyInt("fold.comment") != 0;
+	bool foldCompact = styler.GetPropertyInt("fold.compact", 1) != 0;
+	unsigned int endPos = startPos + length;
 	int visibleChars = 0;
 	int skipHereCh = 0;
-	Sci_Position lineCurrent = styler.GetLine(startPos);
+	int lineCurrent = styler.GetLine(startPos);
 	int levelPrev = styler.LevelAt(lineCurrent) & SC_FOLDLEVELNUMBERMASK;
 	int levelCurrent = levelPrev;
 	char chNext = styler[startPos];
 	int styleNext = styler.StyleAt(startPos);
-	char word[8] = { '\0' }; // we're not interested in long words anyway
-	unsigned int wordlen = 0;
-	for (Sci_PositionU i = startPos; i < endPos; i++) {
+	for (unsigned int i = startPos; i < endPos; i++) {
 		char ch = chNext;
 		chNext = styler.SafeGetCharAt(i + 1);
 		int style = styleNext;
 		styleNext = styler.StyleAt(i + 1);
 		bool atEOL = (ch == '\r' && chNext != '\n') || (ch == '\n');
 		// Comment folding
-		if (options.foldComment && atEOL && IsCommentLine(lineCurrent, styler))
+		if (foldComment && atEOL && IsCommentLine(lineCurrent, styler))
 		{
 			if (!IsCommentLine(lineCurrent - 1, styler)
 				&& IsCommentLine(lineCurrent + 1, styler))
@@ -1022,19 +792,6 @@ void SCI_METHOD LexerBash::Fold(Sci_PositionU startPos, Sci_Position length, int
 			else if (IsCommentLine(lineCurrent - 1, styler)
 					 && !IsCommentLine(lineCurrent + 1, styler))
 				levelCurrent--;
-		}
-		if (style == SCE_SH_WORD) {
-			if ((wordlen + 1) < sizeof(word))
-				word[wordlen++] = ch;
-			if (styleNext != style) {
-				word[wordlen] = '\0';
-				wordlen = 0;
-				if (strcmp(word, "if") == 0 || strcmp(word, "case") == 0 || strcmp(word, "do") == 0) {
-					levelCurrent++;
-				} else if (strcmp(word, "fi") == 0 || strcmp(word, "esac") == 0 || strcmp(word, "done") == 0) {
-					levelCurrent--;
-				}
-			}
 		}
 		if (style == SCE_SH_OPERATOR) {
 			if (ch == '{') {
@@ -1061,7 +818,7 @@ void SCI_METHOD LexerBash::Fold(Sci_PositionU startPos, Sci_Position length, int
 		}
 		if (atEOL) {
 			int lev = levelPrev;
-			if (visibleChars == 0 && options.foldCompact)
+			if (visibleChars == 0 && foldCompact)
 				lev |= SC_FOLDLEVELWHITEFLAG;
 			if ((levelCurrent > levelPrev) && (visibleChars > 0))
 				lev |= SC_FOLDLEVELHEADERFLAG;
@@ -1080,4 +837,9 @@ void SCI_METHOD LexerBash::Fold(Sci_PositionU startPos, Sci_Position length, int
 	styler.SetLevel(lineCurrent, levelPrev | flagsNext);
 }
 
-LexerModule lmBash(SCLEX_BASH, LexerBash::LexerFactoryBash, "bash", bashWordListDesc);
+static const char * const bashWordListDesc[] = {
+	"Keywords",
+	0
+};
+
+LexerModule lmBash(SCLEX_BASH, ColouriseBashDoc, "bash", FoldBashDoc, bashWordListDesc);

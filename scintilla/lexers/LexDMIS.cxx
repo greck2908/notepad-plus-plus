@@ -21,9 +21,10 @@
 #include "StyleContext.h"
 #include "CharacterSet.h"
 #include "LexerModule.h"
-#include "DefaultLexer.h"
 
+#ifdef SCI_NAMESPACE
 using namespace Scintilla;
+#endif
 
 
 static const char *const DMISWordListDesc[] = {
@@ -37,7 +38,7 @@ static const char *const DMISWordListDesc[] = {
 };
 
 
-class LexerDMIS : public DefaultLexer
+class LexerDMIS : public ILexer
 {
 	private:
 		char *m_wordListSets;
@@ -55,43 +56,43 @@ class LexerDMIS : public DefaultLexer
 		LexerDMIS(void);
 		virtual ~LexerDMIS(void);
 
-		int SCI_METHOD Version() const override {
-			return lvRelease4;
+		int SCI_METHOD Version() const {
+			return lvOriginal;
 		}
 
-		void SCI_METHOD Release() override {
+		void SCI_METHOD Release() {
 			delete this;
 		}
 
-		const char * SCI_METHOD PropertyNames() override {
+		const char * SCI_METHOD PropertyNames() {
 			return NULL;
 		}
 
-		int SCI_METHOD PropertyType(const char *) override {
+		int SCI_METHOD PropertyType(const char *) {
 			return -1;
 		}
 
-		const char * SCI_METHOD DescribeProperty(const char *) override {
+		const char * SCI_METHOD DescribeProperty(const char *) {
 			return NULL;
 		}
 
-		Sci_Position SCI_METHOD PropertySet(const char *, const char *) override {
+		int SCI_METHOD PropertySet(const char *, const char *) {
 			return -1;
 		}
 
-		Sci_Position SCI_METHOD WordListSet(int n, const char *wl) override;
+		int SCI_METHOD WordListSet(int n, const char *wl);
 
-		void * SCI_METHOD PrivateCall(int, void *) override {
+		void * SCI_METHOD PrivateCall(int, void *) {
 			return NULL;
 		}
 
-		static ILexer4 *LexerFactoryDMIS() {
+		static ILexer *LexerFactoryDMIS() {
 			return new LexerDMIS;
 		}
 
-		const char * SCI_METHOD DescribeWordListSets() override;
-		void SCI_METHOD Lex(Sci_PositionU startPos, Sci_Position lengthDoc, int initStyle, IDocument *pAccess) override;
-		void SCI_METHOD Fold(Sci_PositionU startPos, Sci_Position lengthDoc, int initStyle, IDocument *pAccess) override;
+		const char * SCI_METHOD DescribeWordListSets();
+		void SCI_METHOD Lex(unsigned int startPos, int lengthDoc, int initStyle, IDocument *pAccess);
+		void SCI_METHOD Fold(unsigned int startPos, int lengthDoc, int initStyle, IDocument *pAccess);
 };
 
 
@@ -144,7 +145,7 @@ LexerDMIS::~LexerDMIS(void) {
 	delete[] this->m_wordListSets;
 }
 
-Sci_Position SCI_METHOD LexerDMIS::WordListSet(int n, const char *wl)
+int SCI_METHOD LexerDMIS::WordListSet(int n, const char *wl)
 {
 	switch (n) {
 		case 0:
@@ -184,9 +185,9 @@ const char * SCI_METHOD LexerDMIS::DescribeWordListSets()
 	return this->m_wordListSets;
 }
 
-void SCI_METHOD LexerDMIS::Lex(Sci_PositionU startPos, Sci_Position lengthDoc, int initStyle, IDocument *pAccess)
+void SCI_METHOD LexerDMIS::Lex(unsigned int startPos, int lengthDoc, int initStyle, IDocument *pAccess)
 {
-	const Sci_PositionU MAX_STR_LEN = 100;
+	const unsigned int MAX_STR_LEN = 100;
 
 	LexAccessor styler(pAccess);
 	StyleContext scCTX(startPos, lengthDoc, initStyle, styler);
@@ -280,14 +281,14 @@ void SCI_METHOD LexerDMIS::Lex(Sci_PositionU startPos, Sci_Position lengthDoc, i
 	scCTX.Complete();
 }
 
-void SCI_METHOD LexerDMIS::Fold(Sci_PositionU startPos, Sci_Position lengthDoc, int, IDocument *pAccess)
+void SCI_METHOD LexerDMIS::Fold(unsigned int startPos, int lengthDoc, int, IDocument *pAccess)
 {
 	const int MAX_STR_LEN = 100;
 
 	LexAccessor styler(pAccess);
-	Sci_PositionU endPos = startPos + lengthDoc;
+	unsigned int endPos = startPos + lengthDoc;
 	char chNext = styler[startPos];
-	Sci_Position lineCurrent = styler.GetLine(startPos);
+	int lineCurrent = styler.GetLine(startPos);
 	int levelPrev = styler.LevelAt(lineCurrent) & SC_FOLDLEVELNUMBERMASK;
 	int levelCurrent = levelPrev;
 	int strPos = 0;
@@ -299,7 +300,7 @@ void SCI_METHOD LexerDMIS::Fold(Sci_PositionU startPos, Sci_Position lengthDoc, 
 	tmpStr = new char[MAX_STR_LEN];
 	memset(tmpStr, 0, MAX_STR_LEN*sizeof(char));
 
-	for (Sci_PositionU i=startPos; i<endPos; i++) {
+	for (unsigned int i=startPos; i<endPos; i++) {
 		char ch = chNext;
 		chNext = styler.SafeGetCharAt(i+1);
 

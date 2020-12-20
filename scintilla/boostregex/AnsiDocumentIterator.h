@@ -1,16 +1,21 @@
 ﻿#ifndef ANSIDOCUMENTITERATOR_H_12481491281240
 #define ANSIDOCUMENTITERATOR_H_12481491281240
 
-#include "Position.h"
-
+#ifdef SCI_NAMESPACE
 namespace Scintilla {
+#endif
 
 class AnsiDocumentIterator : public std::iterator<std::bidirectional_iterator_tag, char>
 {
 public:
-	AnsiDocumentIterator() {};
+	AnsiDocumentIterator() : 
+		m_doc(0), 
+		m_pos(0),
+		m_end(0)
+	{
+	}
 
-	AnsiDocumentIterator(Document* doc, Sci::Position pos, Sci::Position end) : 
+	AnsiDocumentIterator(Document* doc, int pos, int end) : 
 		m_doc(doc),
 		m_pos(pos),
 		m_end(end)
@@ -69,13 +74,13 @@ public:
 		return *this;
 	}
 
-	Sci::Position pos() const
+	int pos() const
 	{
 		return m_pos;
 	}
 
 private:
-	char charAt(Sci::Position position) const
+	char charAt(int position) const
 	{
 		return m_doc->CharAt(position);
 	}
@@ -85,10 +90,13 @@ private:
 		return m_pos == m_end;
 	}
 
-	Sci::Position m_pos = 0;
-	Sci::Position m_end = 0;
-	Document* m_doc = nullptr;
+	int m_pos;
+	int m_end;
+	Document* m_doc;
 };
+
+#ifdef SCI_NAMESPACE
 }
+#endif
 
 #endif

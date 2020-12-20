@@ -17,27 +17,17 @@ def findCategories(filename):
 def updateCharacterCategory(filename):
     values = ["// Created with Python %s,  Unicode %s" % (
         platform.python_version(), unicodedata.unidata_version)]
-
+    category = unicodedata.category(chr(0))
     startRange = 0
-    category = unicodedata.category(chr(startRange))
-    table = []
     for ch in range(sys.maxunicode):
         uch = chr(ch)
-        current = unicodedata.category(uch)
-        if current != category:
+        if unicodedata.category(uch) != category:
             value = startRange * 32 + categories.index(category)
-            table.append(value)
-            category = current
+            values.append("%d," % value)
+            category = unicodedata.category(uch)
             startRange = ch
     value = startRange * 32 + categories.index(category)
-    table.append(value)
-
-    # the sentinel value is used to simplify CharacterCategoryMap::Optimize()
-    category = 'Cn'
-    value = (sys.maxunicode + 1)*32 + categories.index(category)
-    table.append(value)
-
-    values.extend(["%d," % value for value in table])
+    values.append("%d," % value)
 
     Regenerate(filename, "//", values)
 

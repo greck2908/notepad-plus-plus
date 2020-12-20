@@ -1,5 +1,5 @@
 // This file is part of Notepad++ project
-// Copyright (C)2020 Don HO <don.h@free.fr>
+// Copyright (C)2003 Don HO <don.h@free.fr>
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -26,7 +26,8 @@
 // Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 
 
-#pragma once
+#ifndef TRAY_ICON_CONTROLER_H
+#define TRAY_ICON_CONTROLER_H
 
 #include <windows.h>
 
@@ -40,7 +41,7 @@
 class trayIconControler
 {
 public:
-  trayIconControler(HWND hwnd, UINT uID, UINT uCBMsg, HICON hicon, const TCHAR *tip);
+  trayIconControler(HWND hwnd, UINT uID, UINT uCBMsg, HICON hicon, TCHAR *tip);
   int doTrayIcon(DWORD op);
   bool isInTray() const {return _isIconShowed;};
 
@@ -49,3 +50,4 @@ private:
   bool              _isIconShowed;
 };
 
+#endif //TRAY_ICON_CONTROLER_H

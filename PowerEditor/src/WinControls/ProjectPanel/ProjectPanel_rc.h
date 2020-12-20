@@ -1,5 +1,5 @@
 // This file is part of Notepad++ project
-// Copyright (C)2020 Don HO <don.h@free.fr>
+// Copyright (C)2003 Don HO <don.h@free.fr>
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -26,7 +26,8 @@
 // Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 
 
-#pragma once
+#ifndef PROJECTPANEL_RC_H
+#define PROJECTPANEL_RC_H
 
 #define	IDD_PROJECTPANEL		3100
 
@@ -59,4 +60,5 @@
 #define	IDD_FILERELOCALIZER_DIALOG  3200
   #define	IDC_EDIT_FILEFULLPATHNAME  (IDD_FILERELOCALIZER_DIALOG + 1)
   
+#endif // PROJECTPANEL_RC_H
 

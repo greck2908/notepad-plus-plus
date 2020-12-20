@@ -1,5 +1,5 @@
 // This file is part of Notepad++ project
-// Copyright (C)2020 Don HO <don.h@free.fr>
+// Copyright (C)2003 Don HO <don.h@free.fr>
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -26,7 +26,8 @@
 // Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 
 
-#pragma once
+#ifndef SCINTILLACTRLS_H
+#define SCINTILLACTRLS_H
 
 #include <vector>
 #include <windows.h>
@@ -42,13 +43,14 @@ public :
 
 	HWND createSintilla(HWND hParent);
 	ScintillaEditView * getScintillaEditViewFrom(HWND handle2Find);
-	//bool destroyScintilla(HWND handle2Destroy);
+	bool destroyScintilla(HWND handle2Destroy);
 	void destroy();
 	
 private:
 	std::vector<ScintillaEditView *> _scintVector;
-	HINSTANCE _hInst = nullptr;
-	HWND _hParent = nullptr;
+	HINSTANCE _hInst;
+	HWND _hParent;
 	int getIndexFrom(HWND handle2Find);
 };
 
+#endif //SCINTILLACTRLS_H

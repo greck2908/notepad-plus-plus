@@ -26,7 +26,6 @@
 //	http://qualapps.blogspot.com/2010/05/understanding-readdirectorychangesw.html
 //	See ReadMe.txt for overview information.
 
-#include <process.h>
 #include "ReadDirectoryChanges.h"
 #include "ReadDirectoryChangesPrivate.h"
 
@@ -35,8 +34,8 @@ using namespace ReadDirectoryChangesPrivate;
 ///////////////////////////////////////////////////////////////////////////
 // CReadDirectoryChanges
 
-CReadDirectoryChanges::CReadDirectoryChanges()
-	: m_Notifications()
+CReadDirectoryChanges::CReadDirectoryChanges(int nMaxCount)
+	: m_Notifications(nMaxCount)
 {
 	m_hThread	= NULL;
 	m_dwThreadId= 0;
@@ -86,13 +85,13 @@ void CReadDirectoryChanges::AddDirectory( LPCTSTR szDirectory, BOOL bWatchSubtre
 	QueueUserAPC(CReadChangesServer::AddDirectoryProc, m_hThread, (ULONG_PTR)pRequest);
 }
 
-void CReadDirectoryChanges::Push(DWORD dwAction, std::wstring& wstrFilename)
+void CReadDirectoryChanges::Push(DWORD dwAction, CStringW& wstrFilename)
 {
 	TDirectoryChangeNotification dirChangeNotif = TDirectoryChangeNotification(dwAction, wstrFilename);
 	m_Notifications.push(dirChangeNotif);
 }
 
-bool  CReadDirectoryChanges::Pop(DWORD& dwAction, std::wstring& wstrFilename)
+bool  CReadDirectoryChanges::Pop(DWORD& dwAction, CStringW& wstrFilename)
 {
 	TDirectoryChangeNotification pair;
 	if (!m_Notifications.pop(pair))
@@ -102,4 +101,12 @@ bool  CReadDirectoryChanges::Pop(DWORD& dwAction, std::wstring& wstrFilename)
 	wstrFilename = pair.second;
 
 	return true;
+}
+
+bool CReadDirectoryChanges::CheckOverflow()
+{
+	bool b = m_Notifications.overflow();
+	if (b)
+		m_Notifications.clear();
+	return b;
 }

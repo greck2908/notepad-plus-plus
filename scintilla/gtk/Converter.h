@@ -6,43 +6,54 @@
 #ifndef CONVERTER_H
 #define CONVERTER_H
 
+#ifdef SCI_NAMESPACE
 namespace Scintilla {
+#endif
 
-const GIConv iconvhBad = (GIConv)(-1);
-const gsize sizeFailure = static_cast<gsize>(-1);
+typedef GIConv ConverterHandle;
+const ConverterHandle iconvhBad = (ConverterHandle)(-1);
+// Since various versions of iconv can not agree on whether the src argument
+// is char ** or const char ** provide a templatised adaptor.
+template<typename T>
+size_t iconv_adaptor(size_t(*f_iconv)(ConverterHandle, T, size_t *, char **, size_t *),
+		ConverterHandle cd, char** src, size_t *srcleft,
+		char **dst, size_t *dstleft) {
+	return f_iconv(cd, (T)src, srcleft, dst, dstleft);
+}
 /**
- * Encapsulate g_iconv safely.
+ * Encapsulate iconv safely and avoid iconv_adaptor complexity in client code.
  */
 class Converter {
-	GIConv iconvh;
-	void OpenHandle(const char *fullDestination, const char *charSetSource) noexcept {
+	ConverterHandle iconvh;
+	void OpenHandle(const char *fullDestination, const char *charSetSource) {
 		iconvh = g_iconv_open(fullDestination, charSetSource);
 	}
-	bool Succeeded() const noexcept {
+	bool Succeeded() const {
 		return iconvh != iconvhBad;
 	}
 public:
-	Converter() noexcept {
+	Converter() {
 		iconvh = iconvhBad;
 	}
 	Converter(const char *charSetDestination, const char *charSetSource, bool transliterations) {
 		iconvh = iconvhBad;
-		Open(charSetDestination, charSetSource, transliterations);
+	    	Open(charSetDestination, charSetSource, transliterations);
 	}
 	~Converter() {
 		Close();
 	}
-	operator bool() const noexcept {
+	operator bool() const {
 		return Succeeded();
 	}
-	void Open(const char *charSetDestination, const char *charSetSource, bool transliterations) {
+	void Open(const char *charSetDestination, const char *charSetSource, bool transliterations=true) {
 		Close();
 		if (*charSetSource) {
 			// Try allowing approximate transliterations
 			if (transliterations) {
-				std::string fullDest(charSetDestination);
-				fullDest.append("//TRANSLIT");
-				OpenHandle(fullDest.c_str(), charSetSource);
+				char fullDest[200];
+				g_strlcpy(fullDest, charSetDestination, sizeof(fullDest));
+				g_strlcat(fullDest, "//TRANSLIT", sizeof(fullDest));
+				OpenHandle(fullDest, charSetSource);
 			}
 			if (!Succeeded()) {
 				// Transliterations failed so try basic name
@@ -50,21 +61,23 @@ public:
 			}
 		}
 	}
-	void Close() noexcept {
+	void Close() {
 		if (Succeeded()) {
 			g_iconv_close(iconvh);
 			iconvh = iconvhBad;
 		}
 	}
-	gsize Convert(char **src, gsize *srcleft, char **dst, gsize *dstleft) const noexcept {
+	size_t Convert(char** src, size_t *srcleft, char **dst, size_t *dstleft) const {
 		if (!Succeeded()) {
-			return sizeFailure;
+			return (size_t)(-1);
 		} else {
-			return g_iconv(iconvh, src, srcleft, dst, dstleft);
+			return iconv_adaptor(g_iconv, iconvh, src, srcleft, dst, dstleft);
 		}
 	}
 };
 
+#ifdef SCI_NAMESPACE
 }
+#endif
 
 #endif

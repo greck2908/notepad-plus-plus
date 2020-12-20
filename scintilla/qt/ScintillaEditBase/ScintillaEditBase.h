@@ -12,12 +12,6 @@
 #ifndef SCINTILLAEDITBASE_H
 #define SCINTILLAEDITBASE_H
 
-#include <cstddef>
-
-#include <string_view>
-#include <vector>
-#include <memory>
-
 #include "Platform.h"
 #include "Scintilla.h"
 
@@ -25,14 +19,14 @@
 #include <QMimeData>
 #include <QTime>
 
+#ifdef SCI_NAMESPACE
 namespace Scintilla {
+#endif
 
 class ScintillaQt;
 class SurfaceImpl;
+struct SCNotification;
 
-}
-
-#ifndef EXPORT_IMPORT_API
 #ifdef WIN32
 #ifdef MAKING_LIBRARY
 #define EXPORT_IMPORT_API __declspec(dllexport)
@@ -43,7 +37,6 @@ class SurfaceImpl;
 #endif
 #else
 #define EXPORT_IMPORT_API
-#endif
 #endif
 
 class EXPORT_IMPORT_API ScintillaEditBase : public QAbstractScrollArea {
@@ -91,7 +84,7 @@ signals:
 	void modifyAttemptReadOnly();
 	void key(int key);
 	void doubleClick(int position, int line);
-	void updateUi(int updated);
+	void updateUi();
 	void modified(int type, int position, int length, int linesAdded,
 	              const QByteArray &text, int line, int foldNow, int foldPrev);
 	void macroRecord(int message, uptr_t wParam, sptr_t lParam);
@@ -100,7 +93,7 @@ signals:
 	void needShown(int position, int length);
 	void painted();
 	void userListSelection(); // Wants some args.
-	void uriDropped(const QString &uri);
+	void uriDropped();        // Wants some args.
 	void dwellStart(int x, int y);
 	void dwellEnd(int x, int y);
 	void zoom(int zoom);
@@ -109,7 +102,6 @@ signals:
 	void callTipClick();
 	void autoCompleteSelection(int position, const QString &text);
 	void autoCompleteCancelled();
-	void focusChanged(bool focused);
 
 	// Base notifications for compatibility with other Scintilla implementations
 	void notify(SCNotification *pscn);
@@ -122,28 +114,28 @@ signals:
 	void resized();
 
 protected:
-	bool event(QEvent *event) override;
-	void paintEvent(QPaintEvent *event) override;
-	void wheelEvent(QWheelEvent *event) override;
-	void focusInEvent(QFocusEvent *event) override;
-	void focusOutEvent(QFocusEvent *event) override;
-	void resizeEvent(QResizeEvent *event) override;
-	void keyPressEvent(QKeyEvent *event) override;
-	void mousePressEvent(QMouseEvent *event) override;
-	void mouseReleaseEvent(QMouseEvent *event) override;
-	void mouseDoubleClickEvent(QMouseEvent *event) override;
-	void mouseMoveEvent(QMouseEvent *event) override;
-	void contextMenuEvent(QContextMenuEvent *event) override;
-	void dragEnterEvent(QDragEnterEvent *event) override;
-	void dragLeaveEvent(QDragLeaveEvent *event) override;
-	void dragMoveEvent(QDragMoveEvent *event) override;
-	void dropEvent(QDropEvent *event) override;
-	void inputMethodEvent(QInputMethodEvent *event) override;
-	QVariant inputMethodQuery(Qt::InputMethodQuery query) const override;
-	void scrollContentsBy(int, int) override {}
+	virtual bool event(QEvent *event);
+	virtual void paintEvent(QPaintEvent *event);
+	virtual void wheelEvent(QWheelEvent *event);
+	virtual void focusInEvent(QFocusEvent *event);
+	virtual void focusOutEvent(QFocusEvent *event);
+	virtual void resizeEvent(QResizeEvent *event);
+	virtual void keyPressEvent(QKeyEvent *event);
+	virtual void mousePressEvent(QMouseEvent *event);
+	virtual void mouseReleaseEvent(QMouseEvent *event);
+	virtual void mouseDoubleClickEvent(QMouseEvent *event);
+	virtual void mouseMoveEvent(QMouseEvent *event);
+	virtual void contextMenuEvent(QContextMenuEvent *event);
+	virtual void dragEnterEvent(QDragEnterEvent *event);
+	virtual void dragLeaveEvent(QDragLeaveEvent *event);
+	virtual void dragMoveEvent(QDragMoveEvent *event);
+	virtual void dropEvent(QDropEvent *event);
+	virtual void inputMethodEvent(QInputMethodEvent *event);
+	virtual QVariant inputMethodQuery(Qt::InputMethodQuery query) const;
+	virtual void scrollContentsBy(int, int) {}
 
 private:
-	Scintilla::ScintillaQt *sqt;
+	ScintillaQt *sqt;
 
 	QTime time;
 
@@ -153,9 +145,12 @@ private:
 	int wheelDelta;
 
 	static bool IsHangul(const QChar qchar);
-	void MoveImeCarets(int offset);
+	void MoveImeCarets(int offset); 
 	void DrawImeIndicator(int indicator, int len);
-	int ModifiersOfKeyboard() const;
 };
+
+#ifdef SCI_NAMESPACE
+}
+#endif
 
 #endif /* SCINTILLAEDITBASE_H */

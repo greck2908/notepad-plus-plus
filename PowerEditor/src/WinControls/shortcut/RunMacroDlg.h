@@ -1,5 +1,5 @@
 // This file is part of Notepad++ project
-// Copyright (C)2020 Don HO <don.h@free.fr>
+// Copyright (C)2003 Don HO <don.h@free.fr>
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -39,8 +39,9 @@
 class RunMacroDlg : public StaticDialog
 {
 public :
-	RunMacroDlg() = default;
-	~RunMacroDlg() = default;
+	RunMacroDlg() : StaticDialog() {};
+	~RunMacroDlg() {
+	};
 
 	void init(HINSTANCE hInst, HWND hPere/*, ScintillaEditView **ppEditView*/) {
 		Window::init(hInst, hPere);
@@ -50,12 +51,7 @@ public :
 		if (!isCreated())
 			create(IDD_RUN_MACRO_DLG, isRTL);
 		else
-		{
-			// Shortcut might have been updated for current session
-			// So reload the macro list (issue #4526)
-			initMacroList();
 			::ShowWindow(_hSelf, SW_SHOW);
-		}
 	};
 
 	void initMacroList();

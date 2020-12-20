@@ -91,7 +91,6 @@ private:
 	int m_nameLength;
 	int m_nameMaxLength;
 	bool m_isDynamic;
-	HBITMAP m_hBitmap;
 
 	DWORD m_winVer;	//current windows version
 

@@ -1,5 +1,5 @@
 // This file is part of Notepad++ project
-// Copyright (C)2020 Don HO <don.h@free.fr>
+// Copyright (C)2003 Don HO <don.h@free.fr>
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -32,7 +32,7 @@
 #include "TreeView.h"
 #include "ProjectPanel_rc.h"
 
-#define PM_PROJECTPANELTITLE     TEXT("Project Panel")
+#define PM_PROJECTPANELTITLE     TEXT("Project")
 #define PM_WORKSPACEROOTNAME     TEXT("Workspace")
 #define PM_NEWFOLDERNAME         TEXT("Folder Name")
 #define PM_NEWPROJECTNAME        TEXT("Project Name")
@@ -68,11 +68,10 @@ class FileDialog;
 class ProjectPanel : public DockingDlgInterface {
 public:
 	ProjectPanel(): DockingDlgInterface(IDD_PROJECTPANEL) {};
-	~ProjectPanel();
 
-	void init(HINSTANCE hInst, HWND hPere, int panelID) {
+
+	void init(HINSTANCE hInst, HWND hPere) {
 		DockingDlgInterface::init(hInst, hPere);
-		_panelID = panelID;
 	}
 
     virtual void display(bool toShow = true) const {
@@ -83,16 +82,8 @@ public:
         _hParent = parent2set;
     };
 
-	void setPanelTitle(generic_string title) {
-		_panelTitle = title;
-	};
-	const TCHAR * getPanelTitle() const {
-		return _panelTitle.c_str();
-	};
-
 	void newWorkSpace();
-	bool saveWorkspaceRequest();
-	bool openWorkSpace(const TCHAR *projectFileName, bool force = false);
+	bool openWorkSpace(const TCHAR *projectFileName);
 	bool saveWorkSpace();
 	bool saveWorkSpaceAs(bool saveCopyAs);
 	void setWorkSpaceFilePath(const TCHAR *projectFileName){
@@ -104,7 +95,7 @@ public:
 	bool isDirty() const {
 		return _isDirty;
 	};
-	bool checkIfNeedSave();
+	void checkIfNeedSave(const TCHAR *title);
 
 	virtual void setBackgroundColor(COLORREF bgColour) {
 		TreeView_SetBkColor(_treeView.getHSelf(), bgColour);
@@ -121,11 +112,9 @@ protected:
 	HMENU _hProjectMenu = nullptr;
 	HMENU _hFolderMenu = nullptr;
 	HMENU _hFileMenu = nullptr;
-	generic_string _panelTitle;
 	generic_string _workSpaceFilePath;
 	generic_string _selDirOfFilesFromDirDlg;
 	bool _isDirty = false;
-	int _panelID = 0;
 
 	void initMenus();
 	void destroyMenus();
@@ -146,19 +135,16 @@ protected:
 	bool buildTreeFrom(TiXmlNode *projectRoot, HTREEITEM hParentItem);
 	void notified(LPNMHDR notification);
 	void showContextMenu(int x, int y);
-	void showContextMenuFromMenuKey(HTREEITEM selectedItem, int x, int y);
-	HMENU getMenuHandler(HTREEITEM selectedItem);
 	generic_string getAbsoluteFilePath(const TCHAR * relativePath);
 	void openSelectFile();
 	void setFileExtFilter(FileDialog & fDlg);
-	std::vector<generic_string*> fullPathStrs;
 };
 
 class FileRelocalizerDlg : public StaticDialog
 {
 public :
-	FileRelocalizerDlg() = default;
-	void init(HINSTANCE hInst, HWND parent) {
+	FileRelocalizerDlg() : StaticDialog() {};
+	void init(HINSTANCE hInst, HWND parent){
 		Window::init(hInst, parent);
 	};
 

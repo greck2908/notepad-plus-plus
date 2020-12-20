@@ -1,5 +1,5 @@
 // This file is part of Notepad++ project
-// Copyright (C)2020 Don HO <don.h@free.fr>
+// Copyright (C)2003 Don HO <don.h@free.fr>
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -26,7 +26,8 @@
 // Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 
 
-#pragma once
+#ifndef IDD_FUNCLISTPANEL_RC_H
+#define IDD_FUNCLISTPANEL_RC_H
 
 #define	IDD_FUNCLIST_PANEL		3400
 #define	IDC_LIST_FUNCLIST                (IDD_FUNCLIST_PANEL + 1)
@@ -34,4 +35,6 @@
 #define	IDC_SEARCHFIELD_FUNCLIST         (IDD_FUNCLIST_PANEL + 3)
 #define	IDC_RELOADBUTTON_FUNCLIST        (IDD_FUNCLIST_PANEL + 4)
 #define	IDC_SORTBUTTON_FUNCLIST          (IDD_FUNCLIST_PANEL + 5)
+
+#endif //IDD_FUNCLISTPANEL_RC_H
 

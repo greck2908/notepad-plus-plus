@@ -5,7 +5,7 @@
 //Formatting Slightly modified for N++
 
 // This file is part of Notepad++ project
-// Copyright (C)2020 Don HO <don.h@free.fr>
+// Copyright (C)2003 Don HO <don.h@free.fr>
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -31,7 +31,8 @@
 // along with this program; if not, write to the Free Software
 // Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 
-#pragma once
+#ifndef WIN32_EXCEPTION_H
+#define  WIN32_EXCEPTION_H
 
 #include <exception>
 #include <windows.h>
@@ -74,3 +75,5 @@ private:
 
     friend void Win32Exception::translate(unsigned code, EXCEPTION_POINTERS* info);
 };
+
+#endif // WIN32_EXCEPTION_H

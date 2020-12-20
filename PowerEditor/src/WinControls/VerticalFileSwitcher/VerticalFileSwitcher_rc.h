@@ -1,5 +1,5 @@
 // This file is part of Notepad++ project
-// Copyright (C)2020 Don HO <don.h@free.fr>
+// Copyright (C)2003 Don HO <don.h@free.fr>
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -26,9 +26,11 @@
 // Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 
 
-#pragma once
+#ifndef VERTICALFILESWITCHER_RC_H
+#define VERTICALFILESWITCHER_RC_H
 
 #define	IDD_FILESWITCHER_PANEL		3000
 #define	IDC_LIST_FILESWITCHER    (IDD_FILESWITCHER_PANEL + 1)
 
+#endif // VERTICALFILESWITCHER_RC_H
 

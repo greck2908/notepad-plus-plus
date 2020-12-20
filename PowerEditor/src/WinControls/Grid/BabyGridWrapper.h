@@ -1,5 +1,5 @@
 // This file is part of Notepad++ project
-// Copyright (C)2020 Don HO <don.h@free.fr>
+// Copyright (C)2003 Don HO <don.h@free.fr>
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -35,9 +35,8 @@
 class BabyGridWrapper : public Window
 {
 public :
-	BabyGridWrapper() = default;
-    ~BabyGridWrapper() = default;
-
+	BabyGridWrapper() : Window(){};
+    ~BabyGridWrapper(){};
 	virtual void init(HINSTANCE hInst, HWND parent, int16_t id);
 	virtual void destroy() {
 		::DestroyWindow(_hSelf);

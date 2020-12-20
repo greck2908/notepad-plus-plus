@@ -19,9 +19,13 @@
 // - Add convert function in Utf8_16_Write
 ////////////////////////////////////////////////////////////////////////////////
 
+#ifndef UTF8_16_H
+
 #pragma once
 
+#ifndef PARAMETERS_H
 #include "Parameters.h"
+#endif// PARAMETERS_H
 
 #ifdef _MSC_VER
 #pragma warning(disable: 4514) // nreferenced inline function has been removed
@@ -157,3 +161,4 @@ protected:
 	bool m_bFirstWrite;
 };
 
+#endif// UTF8_16_H
