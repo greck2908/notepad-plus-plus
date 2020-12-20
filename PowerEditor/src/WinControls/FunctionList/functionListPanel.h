@@ -1,5 +1,5 @@
 // This file is part of Notepad++ project
-// Copyright (C)2003 Don HO <don.h@free.fr>
+// Copyright (C)2020 Don HO <don.h@free.fr>
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -33,12 +33,7 @@
 #include "TreeView.h"
 
 #define FL_PANELTITLE     TEXT("Function List")
-#define FL_SORTTIP        TEXT("sort")
-#define FL_RELOADTIP      TEXT("Reload")
-
 #define FL_FUCTIONLISTROOTNODE "FunctionList"
-#define FL_SORTLOCALNODENAME   "SortTip"
-#define FL_RELOADLOCALNODENAME "ReloadTip"
 
 class ScintillaEditView;
 
@@ -83,8 +78,8 @@ struct TreeParams {
 
 class FunctionListPanel : public DockingDlgInterface {
 public:
-	FunctionListPanel(): DockingDlgInterface(IDD_FUNCLIST_PANEL), _ppEditView(NULL), _pTreeView(&_treeView),
-	_reloadTipStr(TEXT("Reload")), _sortTipStr(TEXT("Sort")) {};
+	FunctionListPanel(): DockingDlgInterface(IDD_FUNCLIST_PANEL), _pTreeView(&_treeView) {};
+	~FunctionListPanel();
 
 	void init(HINSTANCE hInst, HWND hPere, ScintillaEditView **ppEditView);
 
@@ -108,6 +103,7 @@ public:
 	// functionalities
 	void sortOrUnsort();
 	void reload();
+	void markEntry();
 	bool serialize(const generic_string & outputFilename = TEXT(""));
 	void addEntry(const TCHAR *node, const TCHAR *displayText, size_t pos);
 	void removeAllEntries();
@@ -117,23 +113,30 @@ protected:
 	virtual INT_PTR CALLBACK run_dlgProc(UINT message, WPARAM wParam, LPARAM lParam);
 
 private:
-	HWND _hToolbarMenu;
-	HWND _hSearchEdit;
+	HWND _hToolbarMenu = nullptr;
+	HWND _hSearchEdit = nullptr;
 
-	TreeView *_pTreeView;
+	TreeView *_pTreeView = nullptr;
 	TreeView _treeView;
 	TreeView _treeViewSearchResult;
 
-	generic_string _sortTipStr;
-	generic_string _reloadTipStr;
+	long _findLine = -1;
+	long _findEndLine = -1;
+	HTREEITEM _findItem;
+
+	generic_string _sortTipStr = TEXT("Reload");
+	generic_string _reloadTipStr = TEXT("Sort");
 
 	std::vector<foundInfo> _foundFuncInfos;
 
-	ScintillaEditView **_ppEditView;
+	std::vector<generic_string*> posStrs;
+
+	ScintillaEditView **_ppEditView = nullptr;
 	FunctionParsersManager _funcParserMgr;
 	std::vector< std::pair<int, int> > _skipZones;
 	std::vector<TreeParams> _treeParams;
 	HIMAGELIST _hTreeViewImaLst;
+
 	generic_string parseSubLevel(size_t begin, size_t end, std::vector< generic_string > dataToSearch, int & foundPos);
 	size_t getBodyClosePos(size_t begin, const TCHAR *bodyOpenSymbol, const TCHAR *bodyCloseSymbol);
 	void notified(LPNMHDR notification);
@@ -143,5 +146,6 @@ private:
 	bool openSelection(const TreeView &treeView);
 	bool shouldSort();
 	void setSort(bool isEnabled);
+	void findMarkEntry(HTREEITEM htItem, LONG line);
 };
 
